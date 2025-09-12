@@ -150,6 +150,7 @@ public class AuthServiceImpl implements AuthService {
         user.setAge(registerRequest.getAge());
         user.setPhone(registerRequest.getPhone());
         user.setEmail(registerRequest.getEmail());
+        user.setAvatar(registerRequest.getAvatar());
         user.setUserType(registerRequest.getUserType());
 
         // 设置校区信息

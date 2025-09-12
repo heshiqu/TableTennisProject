@@ -147,7 +147,7 @@
         <el-row :gutter="20">
           <el-col :span="8">
             <div class="detail-avatar">
-              <img :src="selectedStudent.avatar || '/default-avatar.png'" alt="学员头像">
+              <img :src="selectedStudent.avatar || '/uploads/avatars/default-avatar.png'" alt="学员头像">
             </div>
           </el-col>
           <el-col :span="16">

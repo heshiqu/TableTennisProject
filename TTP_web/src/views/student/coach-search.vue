@@ -59,7 +59,7 @@
         <el-col :span="8" v-for="coach in coachList" :key="coach.id" style="margin-bottom: 20px;">
           <el-card :body-style="{ padding: '20px' }" class="coach-card">
             <div class="coach-header">
-              <el-avatar :size="80" :src="coach.avatar || defaultAvatar" class="coach-avatar"></el-avatar>
+              <el-avatar :size="80" :src="getAvatarUrl(coach.avatar)" class="coach-avatar"></el-avatar>
               <div class="coach-info">
                 <h4>{{ coach.realName }}</h4>
                 <p>{{ coach.level | levelFilter }}</p>
@@ -119,7 +119,7 @@
       <div v-if="selectedCoach">
         <el-row :gutter="20">
           <el-col :span="8">
-            <el-avatar :size="120" :src="selectedCoach.avatar || defaultAvatar"></el-avatar>
+            <el-avatar :size="120" :src="getAvatarUrl(selectedCoach.avatar)"></el-avatar>
           </el-col>
           <el-col :span="16">
             <h3>{{ selectedCoach.realName }}</h3>
@@ -162,7 +162,8 @@
 </template>
 
 <script>
-import { searchCoaches, getAllCoaches, selectCoach } from '@/api/coach'
+import { getAllCoaches, selectCoach } from '@/api/coach'
+import { getAvatarUrl } from '@/utils/avatar'
 import { getMyCoaches } from '@/api/student'
 
 export default {
@@ -185,7 +186,7 @@ export default {
         size: 6
       },
       total: 0,
-      defaultAvatar: 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'
+      defaultAvatar: '/uploads/avatars/default-avatar.png'
     }
   },
   filters: {
@@ -206,6 +207,7 @@ export default {
     this.handleBrowseAll()
   },
   methods: {
+    getAvatarUrl,
     async loadMyCoaches() {
       try {
         const response = await getMyCoaches()

@@ -52,4 +52,7 @@ public class RegisterRequest {
 
     // 学员特有字段
     private BigDecimal initialBalance;
+    
+    // 头像URL
+    private String avatar;
 }

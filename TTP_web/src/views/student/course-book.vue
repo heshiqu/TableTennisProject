@@ -167,7 +167,7 @@ export default {
       selectedTable: null,
       availableSlots: [],
       availableTables: [],
-      defaultAvatar: 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png',
+      defaultAvatar: '/uploads/avatars/default-avatar.png',
       calendarRange: [new Date(), new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)]
     }
   },

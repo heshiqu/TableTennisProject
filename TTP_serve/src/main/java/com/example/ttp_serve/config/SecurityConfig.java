@@ -55,6 +55,9 @@ public class SecurityConfig {
                                 "/api/payments/**",
                                 "/api/students",
                                 "/api/students/**",
+                                "/api/upload",
+                                "/api/upload/**",
+                                "/uploads/avatars/**",
                                 "/webjars/**"
                         ).permitAll()
                         .requestMatchers(

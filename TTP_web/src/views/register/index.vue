@@ -128,6 +128,53 @@
         />
       </el-form-item>
 
+      <!-- 头像上传 -->
+      <el-form-item label="头像">
+        <div class="avatar-section">
+          <div class="avatar-upload-container">
+            <el-upload
+              class="avatar-uploader-enhanced"
+              action="#"
+              :show-file-list="false"
+              :before-upload="beforeAvatarUpload"
+              :http-request="uploadAvatar"
+              accept="image/*"
+            >
+              <div class="avatar-display-area">
+                <img v-if="registerForm.avatar" :src="registerForm.avatar" class="avatar-image" @error="handleImageError" />
+                <div v-else class="avatar-placeholder-enhanced">
+                  <div class="avatar-icon-wrapper">
+                    <svg-icon icon-class="user" class="avatar-icon-large" />
+                  </div>
+                  <div class="avatar-upload-text">点击上传头像</div>
+                </div>
+              </div>
+              <div class="avatar-hover-overlay">
+                <svg-icon icon-class="upload" class="upload-icon" />
+                <span>更换头像</span>
+              </div>
+            </el-upload>
+            
+            <div class="avatar-info">
+              <div class="avatar-tip-enhanced">
+                <svg-icon icon-class="info" class="info-icon" />
+                <span>支持 JPG、PNG 格式，最大5MB</span>
+              </div>
+              <el-button 
+                v-if="registerForm.avatar" 
+                type="text" 
+                size="mini" 
+                class="remove-avatar-btn"
+                @click="clearAvatar"
+              >
+                <svg-icon icon-class="delete" />
+                清除头像
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </el-form-item>
+
       <!-- 校区选择 -->
       <el-form-item prop="campusId">
         <span class="svg-container">
@@ -184,6 +231,8 @@
 </template>
 
 <script>
+import { uploadAvatar } from '@/api/upload'
+
 export default {
   name: 'Register',
   data() {
@@ -242,7 +291,8 @@ export default {
         email: '',
         campusId: '',
         level: 'JUNIOR',
-        awards: ''
+        awards: '',
+        avatar: ''
       },
       registerRules: {
         userType: [{ required: true, message: '请选择用户类型', trigger: 'change' }],
@@ -347,7 +397,8 @@ export default {
             phone: this.registerForm.phone,
             email: this.registerForm.email,
             campusId: this.registerForm.campusId,
-            userType: this.registerForm.userType
+            userType: this.registerForm.userType,
+            avatar: this.registerForm.avatar
           }
 
           // 添加用户类型特有字段
@@ -381,10 +432,61 @@ export default {
     },
     goToLogin() {
       this.$router.push('/login')
+    },
+    
+    // 清除头像
+    clearAvatar() {
+      this.registerForm.avatar = ''
+    },
+    
+    // 处理图片加载错误
+    handleImageError() {
+      console.error('头像图片加载失败，使用默认头像')
+      this.registerForm.avatar = ''
+    },
+    
+    // 头像上传前检查
+    beforeAvatarUpload(file) {
+      const isImage = file.type.startsWith('image/')
+      const isLt5M = file.size / 1024 / 1024 < 5
+
+      if (!isImage) {
+        this.$message.error('只能上传图片文件!')
+        return false
+      }
+      if (!isLt5M) {
+        this.$message.error('图片大小不能超过 5MB!')
+        return false
+      }
+      return true
+    },
+
+    // 上传头像
+    uploadAvatar({ file }) {
+      const loading = this.$loading({
+        lock: true,
+        text: '上传中...',
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.7)'
+      })
+
+      uploadAvatar(file)
+        .then(response => {
+          // 处理不同响应格式
+          const avatarUrl = response.data || response.data.data || response
+          this.registerForm.avatar = avatarUrl.startsWith('http') ? avatarUrl : `http://localhost:8080${avatarUrl}`
+          this.$message.success('头像上传成功')
+        })
+        .catch(error => {
+          this.$message.error('头像上传失败')
+          console.error('头像上传失败:', error)
+        })
+        .finally(() => {
+          loading.close()
+        })
     }
   }
-}
-</script>
+}</script>
 
 <style lang="scss">
 $bg:#283443;
@@ -433,6 +535,148 @@ $cursor: #fff;
     }
   }
 }
+.avatar-section {
+  padding: 10px 0;
+}
+
+.avatar-upload-container {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.avatar-uploader-enhanced {
+  position: relative;
+}
+
+.avatar-uploader-enhanced .el-upload {
+  border: 2px dashed #d9d9d9;
+  border-radius: 50%;
+  width: 120px;
+  height: 120px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  background: #fafafa;
+}
+
+.avatar-uploader-enhanced .el-upload:hover {
+  border-color: #409EFF;
+  background: #f0f9ff;
+}
+
+.avatar-uploader-enhanced .el-upload:hover .avatar-hover-overlay {
+  opacity: 1;
+}
+
+.avatar-display-area {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar-placeholder-enhanced {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+}
+
+.avatar-icon-wrapper {
+  margin-bottom: 8px;
+}
+
+.avatar-icon-large {
+  font-size: 36px;
+  color: #d9d9d9;
+}
+
+.avatar-upload-text {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+}
+
+.avatar-hover-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 50%;
+}
+
+.upload-icon {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.avatar-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.avatar-tip-enhanced {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #666;
+}
+
+.info-icon {
+  font-size: 14px;
+  color: #409EFF;
+}
+
+.remove-avatar-btn {
+  align-self: flex-start;
+  color: #f56c6c;
+  padding: 0;
+  font-size: 12px;
+}
+
+.remove-avatar-btn:hover {
+  color: #ff7875;
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+  .avatar-upload-container {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .avatar-info {
+    align-items: center;
+  }
+}
+
 </style>
 
 <style lang="scss" scoped>

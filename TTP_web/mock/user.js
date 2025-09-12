@@ -3,23 +3,56 @@ const tokens = {
   admin: {
     token: 'admin-token'
   },
-  editor: {
-    token: 'editor-token'
+  student: {
+    token: 'student-token'
+  },
+  coach: {
+    token: 'coach-token'
   }
 }
 
 const users = {
   'admin-token': {
-    roles: ['admin'],
-    introduction: 'I am a super administrator',
-    avatar: 'https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif',
-    name: 'Super Admin'
+    id: 1,
+    username: 'admin',
+    realName: '管理员',
+    gender: 'MALE',
+    age: 30,
+    phone: '13800138000',
+    email: 'admin@example.com',
+    campusId: 1,
+    campusName: '北京校区',
+    avatar: '5a4717f8-9803-4cb4-9f60-ddb143fa099a.jpg',
+    role: 'ADMIN',
+    userType: 'ADMIN'
   },
-  'editor-token': {
-    roles: ['editor'],
-    introduction: 'I am an editor',
-    avatar: 'https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif',
-    name: 'Normal Editor'
+  'student-token': {
+    id: 2,
+    username: 'student',
+    realName: '学生用户',
+    gender: 'FEMALE',
+    age: 20,
+    phone: '13800138001',
+    email: 'student@example.com',
+    campusId: 1,
+    campusName: '北京校区',
+    avatar: '', // 空字符串，将使用默认头像
+    role: 'STUDENT',
+    userType: 'STUDENT'
+  },
+  'coach-token': {
+    id: 3,
+    username: 'coach',
+    realName: '教练用户',
+    gender: 'MALE',
+    age: 35,
+    phone: '13800138002',
+    email: 'coach@example.com',
+    campusId: 1,
+    campusName: '北京校区',
+    avatar: null, // null值，将使用默认头像
+    role: 'COACH',
+    userType: 'COACH'
   }
 }
 
@@ -70,7 +103,7 @@ const campusAdmins = [
 module.exports = [
   // user login
   {
-    url: '/vue-admin-template/user/login',
+    url: '/api/auth/login',
     type: 'post',
     response: config => {
       const { username } = config.body
@@ -80,36 +113,74 @@ module.exports = [
       if (!token) {
         return {
           code: 60204,
-          message: 'Account and password are incorrect.'
+          message: '用户名或密码错误'
         }
       }
 
       return {
-        code: 20000,
-        data: token
+        code: 200,
+        data: {
+          token: token,
+          userType: users[token].userType
+        }
       }
     }
   },
 
-  // get user info
+  // get current user info
   {
-    url: '/vue-admin-template/user/info\.*',
+    url: '/api/auth/me',
     type: 'get',
     response: config => {
-      const { token } = config.query
+      const token = config.headers.authorization?.replace('Bearer ', '')
       const info = users[token]
 
       // mock error
       if (!info) {
         return {
           code: 50008,
-          message: 'Login failed, unable to get user details.'
+          message: '获取用户信息失败，请重新登录'
         }
       }
 
       return {
-        code: 20000,
+        code: 200,
         data: info
+      }
+    }
+  },
+
+  // 头像文件服务 - 直接返回文件
+  {
+    url: '/api/uploads/avatars/.*',
+    type: 'get',
+    response: () => {
+      // 返回默认头像的base64数据
+      return {
+        code: 200,
+        data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+      }
+    }
+  },"explanation":"简化用户信息响应，添加头像文件服务mock"}
+
+  // get user role
+  {
+    url: '/api/auth/check-role',
+    type: 'get',
+    response: config => {
+      const token = config.headers.authorization?.replace('Bearer ', '')
+      const info = users[token]
+
+      if (!info) {
+        return {
+          code: 50008,
+          message: '获取用户角色失败'
+        }
+      }
+
+      return {
+        code: 200,
+        data: info.role
       }
     }
   },

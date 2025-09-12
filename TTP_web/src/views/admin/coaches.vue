@@ -111,7 +111,7 @@
       </el-table-column>
       <el-table-column label="头像" width="80px" align="center">
         <template slot-scope="{row}">
-          <img :src="row.avatar || defaultAvatar" class="user-avatar" @error="handleAvatarError">
+          <img :src="getAvatarUrl(row.avatar)" class="user-avatar" @error="handleAvatarError">
         </template>
       </el-table-column>
       <el-table-column label="教练姓名" min-width="120px" align="center">
@@ -296,6 +296,7 @@ import { getCoachList, createCoach, updateCoach, deleteCoach, auditCoach, getTot
 import { getCampusList } from '@/api/campus'
 import waves from '@/directive/waves'
 import { parseTime } from '@/utils'
+import { getAvatarUrl } from '@/utils/avatar'
 import Pagination from '@/components/Pagination'
 
 export default {
@@ -430,6 +431,7 @@ export default {
     this.loadCoachStatistics()
   },
   methods: {
+    getAvatarUrl,
     async getList() {
       this.listLoading = true
       try {
