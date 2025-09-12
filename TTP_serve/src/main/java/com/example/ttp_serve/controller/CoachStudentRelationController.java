@@ -1,6 +1,7 @@
 package com.example.ttp_serve.controller;
 
 import com.example.ttp_serve.dto.CoachStudentRelationDTO;
+import com.example.ttp_serve.dto.MyApiResponse;
 import com.example.ttp_serve.entity.CoachStudentRelation;
 import com.example.ttp_serve.enums.RelationStatus;
 import com.example.ttp_serve.service.CoachStudentService;
@@ -46,12 +47,16 @@ public class CoachStudentRelationController {
             @ApiResponse(responseCode = "404", description = "教练或学员不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<CoachStudentRelationDTO> applyRelation(
+    public ResponseEntity<MyApiResponse<CoachStudentRelationDTO>> applyRelation(
             @Parameter(description = "教练ID", required = true) @RequestParam Long coachId,
             @Parameter(description = "学员ID", required = true) @RequestParam Long studentId) {
-
-        CoachStudentRelation relation = coachStudentService.applyRelation(coachId, studentId);
-        return ResponseEntity.ok(convertToDTO(relation));
+        try {
+            CoachStudentRelation relation = coachStudentService.applyRelation(coachId, studentId);
+            return ResponseEntity.ok(MyApiResponse.success("申请提交成功", convertToDTO(relation)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
     }
 
     /**
@@ -73,12 +78,16 @@ public class CoachStudentRelationController {
             @ApiResponse(responseCode = "404", description = "关系申请不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<CoachStudentRelationDTO> approveRelation(
+    public ResponseEntity<MyApiResponse<CoachStudentRelationDTO>> approveRelation(
             @Parameter(description = "关系申请ID", required = true) @PathVariable Long relationId,
             @Parameter(description = "教练ID", required = true) @RequestParam Long coachId) {
-
-        CoachStudentRelation relation = coachStudentService.approveRelation(relationId, coachId);
-        return ResponseEntity.ok(convertToDTO(relation));
+        try {
+            CoachStudentRelation relation = coachStudentService.approveRelation(relationId, coachId);
+            return ResponseEntity.ok(MyApiResponse.success("批准成功", convertToDTO(relation)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
     }
 
     /**
@@ -100,13 +109,17 @@ public class CoachStudentRelationController {
             @ApiResponse(responseCode = "404", description = "关系申请不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<CoachStudentRelationDTO> rejectRelation(
+    public ResponseEntity<MyApiResponse<CoachStudentRelationDTO>> rejectRelation(
             @Parameter(description = "关系申请ID", required = true) @PathVariable Long relationId,
             @Parameter(description = "教练ID", required = true) @RequestParam Long coachId,
             @Parameter(description = "拒绝原因") @RequestParam(required = false) String reason) {
-
-        CoachStudentRelation relation = coachStudentService.rejectRelation(relationId, coachId, reason);
-        return ResponseEntity.ok(convertToDTO(relation));
+        try {
+            CoachStudentRelation relation = coachStudentService.rejectRelation(relationId, coachId, reason);
+            return ResponseEntity.ok(MyApiResponse.success("拒绝成功", convertToDTO(relation)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
     }
 
     /**
@@ -124,10 +137,15 @@ public class CoachStudentRelationController {
             @ApiResponse(responseCode = "404", description = "关系不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<CoachStudentRelationDTO> getRelation(
+    public ResponseEntity<MyApiResponse<CoachStudentRelationDTO>> getRelation(
             @Parameter(description = "关系ID", required = true) @PathVariable Long relationId) {
-        CoachStudentRelation relation = coachStudentService.getRelation(relationId);
-        return ResponseEntity.ok(convertToDTO(relation));
+        try {
+            CoachStudentRelation relation = coachStudentService.getRelation(relationId);
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", convertToDTO(relation)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
     }
 
     /**
@@ -145,10 +163,15 @@ public class CoachStudentRelationController {
             @ApiResponse(responseCode = "404", description = "教练不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<List<CoachStudentRelationDTO>> getRelationsByCoach(
+    public ResponseEntity<MyApiResponse<List<CoachStudentRelationDTO>>> getRelationsByCoach(
             @Parameter(description = "教练ID", required = true) @PathVariable Long coachId) {
-        List<CoachStudentRelation> relations = coachStudentService.getRelationsByCoach(coachId);
-        return ResponseEntity.ok(convertToDTOList(relations));
+        try {
+            List<CoachStudentRelation> relations = coachStudentService.getRelationsByCoach(coachId);
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", convertToDTOList(relations)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
     }
 
     /**
@@ -166,10 +189,15 @@ public class CoachStudentRelationController {
             @ApiResponse(responseCode = "404", description = "学员不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<List<CoachStudentRelationDTO>> getRelationsByStudent(
+    public ResponseEntity<MyApiResponse<List<CoachStudentRelationDTO>>> getRelationsByStudent(
             @Parameter(description = "学员ID", required = true) @PathVariable Long studentId) {
-        List<CoachStudentRelation> relations = coachStudentService.getRelationsByStudent(studentId);
-        return ResponseEntity.ok(convertToDTOList(relations));
+        try {
+            List<CoachStudentRelation> relations = coachStudentService.getRelationsByStudent(studentId);
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", convertToDTOList(relations)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
     }
 
     /**
@@ -186,10 +214,15 @@ public class CoachStudentRelationController {
             @ApiResponse(responseCode = "200", description = "获取成功"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<List<CoachStudentRelationDTO>> getRelationsByStatus(
+    public ResponseEntity<MyApiResponse<List<CoachStudentRelationDTO>>> getRelationsByStatus(
             @Parameter(description = "关系状态", required = true) @PathVariable RelationStatus status) {
-        List<CoachStudentRelation> relations = coachStudentService.getRelationsByStatus(status);
-        return ResponseEntity.ok(convertToDTOList(relations));
+        try {
+            List<CoachStudentRelation> relations = coachStudentService.getRelationsByStatus(status);
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", convertToDTOList(relations)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
     }
 
     /**
@@ -208,12 +241,16 @@ public class CoachStudentRelationController {
             @ApiResponse(responseCode = "404", description = "教练不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<List<CoachStudentRelationDTO>> getCoachRelationsByStatus(
+    public ResponseEntity<MyApiResponse<List<CoachStudentRelationDTO>>> getCoachRelationsByStatus(
             @Parameter(description = "教练ID", required = true) @PathVariable Long coachId,
             @Parameter(description = "关系状态", required = true) @PathVariable RelationStatus status) {
-
-        List<CoachStudentRelation> relations = coachStudentService.getCoachRelationsByStatus(coachId, status);
-        return ResponseEntity.ok(convertToDTOList(relations));
+        try {
+            List<CoachStudentRelation> relations = coachStudentService.getCoachRelationsByStatus(coachId, status);
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", convertToDTOList(relations)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
     }
 
     /**
@@ -232,12 +269,16 @@ public class CoachStudentRelationController {
             @ApiResponse(responseCode = "404", description = "学员不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<List<CoachStudentRelationDTO>> getStudentRelationsByStatus(
+    public ResponseEntity<MyApiResponse<List<CoachStudentRelationDTO>>> getStudentRelationsByStatus(
             @Parameter(description = "学员ID", required = true) @PathVariable Long studentId,
             @Parameter(description = "关系状态", required = true) @PathVariable RelationStatus status) {
-
-        List<CoachStudentRelation> relations = coachStudentService.getStudentRelationsByStatus(studentId, status);
-        return ResponseEntity.ok(convertToDTOList(relations));
+        try {
+            List<CoachStudentRelation> relations = coachStudentService.getStudentRelationsByStatus(studentId, status);
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", convertToDTOList(relations)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
     }
 
     /**
@@ -255,12 +296,16 @@ public class CoachStudentRelationController {
             @ApiResponse(responseCode = "200", description = "检查成功"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<Boolean> existsRelation(
+    public ResponseEntity<MyApiResponse<Boolean>> existsRelation(
             @Parameter(description = "教练ID", required = true) @RequestParam Long coachId,
             @Parameter(description = "学员ID", required = true) @RequestParam Long studentId) {
-
-        boolean exists = coachStudentService.existsRelation(coachId, studentId);
-        return ResponseEntity.ok(exists);
+        try {
+            boolean exists = coachStudentService.existsRelation(coachId, studentId);
+            return ResponseEntity.ok(MyApiResponse.success("检查成功", exists));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
     }
 
     /**
@@ -274,14 +319,19 @@ public class CoachStudentRelationController {
     @DeleteMapping("/{relationId}")
     @Operation(summary = "删除关系", description = "删除指定的关系，如果是已批准的关系，会减少教练的当前学员数")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "删除成功"),
+            @ApiResponse(responseCode = "200", description = "删除成功"),
             @ApiResponse(responseCode = "404", description = "关系不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<Void> deleteRelation(
+    public ResponseEntity<MyApiResponse<Void>> deleteRelation(
             @Parameter(description = "关系ID", required = true) @PathVariable Long relationId) {
-        coachStudentService.deleteRelation(relationId);
-        return ResponseEntity.noContent().build();
+        try {
+            coachStudentService.deleteRelation(relationId);
+            return ResponseEntity.ok(MyApiResponse.success("删除成功", null));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
     }
 
     /**
@@ -299,10 +349,15 @@ public class CoachStudentRelationController {
             @ApiResponse(responseCode = "404", description = "教练不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<Long> countStudentsByCoach(
+    public ResponseEntity<MyApiResponse<Long>> countStudentsByCoach(
             @Parameter(description = "教练ID", required = true) @PathVariable Long coachId) {
-        Long count = coachStudentService.countStudentsByCoach(coachId);
-        return ResponseEntity.ok(count);
+        try {
+            Long count = coachStudentService.countStudentsByCoach(coachId);
+            return ResponseEntity.ok(MyApiResponse.success("统计成功", count));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
     }
 
     /**
@@ -320,10 +375,15 @@ public class CoachStudentRelationController {
             @ApiResponse(responseCode = "404", description = "学员不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<Long> countCoachesByStudent(
+    public ResponseEntity<MyApiResponse<Long>> countCoachesByStudent(
             @Parameter(description = "学员ID", required = true) @PathVariable Long studentId) {
-        Long count = coachStudentService.countCoachesByStudent(studentId);
-        return ResponseEntity.ok(count);
+        try {
+            Long count = coachStudentService.countCoachesByStudent(studentId);
+            return ResponseEntity.ok(MyApiResponse.success("统计成功", count));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
     }
 
     /**
@@ -341,10 +401,15 @@ public class CoachStudentRelationController {
             @ApiResponse(responseCode = "404", description = "教练不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<Boolean> isCoachFull(
+    public ResponseEntity<MyApiResponse<Boolean>> isCoachFull(
             @Parameter(description = "教练ID", required = true) @PathVariable Long coachId) {
-        boolean isFull = coachStudentService.isCoachFull(coachId);
-        return ResponseEntity.ok(isFull);
+        try {
+            boolean isFull = coachStudentService.isCoachFull(coachId);
+            return ResponseEntity.ok(MyApiResponse.success("检查成功", isFull));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
     }
 
     /**
@@ -362,10 +427,15 @@ public class CoachStudentRelationController {
             @ApiResponse(responseCode = "404", description = "学员不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<Boolean> hasMaxCoaches(
+    public ResponseEntity<MyApiResponse<Boolean>> hasMaxCoaches(
             @Parameter(description = "学员ID", required = true) @PathVariable Long studentId) {
-        boolean hasMax = coachStudentService.hasMaxCoaches(studentId);
-        return ResponseEntity.ok(hasMax);
+        try {
+            boolean hasMax = coachStudentService.hasMaxCoaches(studentId);
+            return ResponseEntity.ok(MyApiResponse.success("检查成功", hasMax));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
     }
 
     /**

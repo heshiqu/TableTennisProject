@@ -51,4 +51,17 @@ public interface CoachService {
      * @param coachId 教练ID
      */
     void deleteCoach(Long coachId);
+
+    /**
+     * 获取所有教练数量
+     * @return 教练总数
+     */
+    long getTotalCoachCount();
+
+    /**
+     * 获取指定校区的教练数量
+     * @param campusId 校区ID
+     * @return 指定校区的教练数量
+     */
+    long getCoachCountByCampus(Long campusId);
 }

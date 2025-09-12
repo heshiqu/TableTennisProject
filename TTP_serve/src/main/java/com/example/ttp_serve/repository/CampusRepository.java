@@ -39,4 +39,7 @@ public interface CampusRepository extends JpaRepository<Campus, Long> {
     // 统计子校区数量
     Long countByParentId(Long parentId);
 
+    // 根据名称模糊查询校区
+    @Query("SELECT c FROM Campus c WHERE c.name LIKE %:name%")
+    List<Campus> findByNameContaining(@Param("name") String name);
 }

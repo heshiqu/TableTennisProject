@@ -28,10 +28,11 @@ export default {
   components: { SidebarItem, Logo },
   computed: {
     ...mapGetters([
-      'sidebar'
+      'sidebar',
+      'roles'
     ]),
     routes() {
-      return this.$router.options.routes
+      return this.filterRoutesByRole(this.$router.options.routes)
     },
     activeMenu() {
       const route = this.$route
@@ -50,6 +51,33 @@ export default {
     },
     isCollapse() {
       return !this.sidebar.opened
+    }
+  },
+  methods: {
+    filterRoutesByRole(routes) {
+      if (!Array.isArray(routes)) return []
+      
+      return routes.filter(route => {
+        if (route.hidden) return false
+        
+        // 检查路由是否需要权限
+        if (route.meta && route.meta.roles) {
+          // 检查用户是否有路由要求的角色
+          return route.meta.roles.some(role => this.roles.includes(role))
+        }
+        
+        // 如果没有roles字段，则所有用户都可以访问
+        return true
+      }).map(route => {
+        // 递归过滤子路由
+        if (route.children) {
+          return {
+            ...route,
+            children: this.filterRoutesByRole(route.children)
+          }
+        }
+        return route
+      })
     }
   }
 }

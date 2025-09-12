@@ -10,6 +10,8 @@ import com.example.ttp_serve.exception.ResourceNotFoundException;
 import com.example.ttp_serve.repository.*;
 import com.example.ttp_serve.service.CourseService;
 import com.example.ttp_serve.service.PaymentService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -348,6 +350,11 @@ public class CourseServiceImpl implements CourseService {
         }
 
         return courseRepository.countByStudentId(studentId);
+    }
+
+    @Override
+    public Page<Course> getAllCourses(Pageable pageable) {
+        return courseRepository.findAll(pageable);
     }
 
     @Override

@@ -11,6 +11,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -481,6 +483,33 @@ public class CourseController {
         try {
             Long count = courseService.countCourses();
             return ResponseEntity.ok(MyApiResponse.success("获取成功", count));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
+    }
+
+    /**
+     * 分页获取所有课程信息
+     *
+     * @param pageable 分页参数
+     * @return 分页课程列表
+     *
+     * @apiNote 分页获取系统中所有课程的详细信息
+     */
+    @GetMapping("/page")
+    @Operation(summary = "分页获取所有课程信息", description = "分页获取系统中所有课程的详细信息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功"),
+            @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
+    public ResponseEntity<MyApiResponse<org.springframework.data.domain.Page<CourseDTO>>> getAllCourses(
+            @Parameter(description = "分页参数", example = "{\"page\": 0, \"size\": 10, \"sort\": [\"startTime,desc\"]}")
+            org.springframework.data.domain.Pageable pageable) {
+        try {
+            org.springframework.data.domain.Page<Course> courses = courseService.getAllCourses(pageable);
+            org.springframework.data.domain.Page<CourseDTO> courseDTOs = courses.map(this::convertToDTO);
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", courseDTOs));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body(MyApiResponse.error(400, e.getMessage()));

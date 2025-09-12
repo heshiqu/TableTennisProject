@@ -1,6 +1,9 @@
 package com.example.ttp_serve.controller;
 
-import com.example.ttp_serve.entity.Campus;
+import com.example.ttp_serve.dto.CampusRequestDTO;
+import com.example.ttp_serve.dto.CampusResponseDTO;
+import com.example.ttp_serve.dto.CampusStatsDTO;
+import com.example.ttp_serve.dto.MyApiResponse;
 import com.example.ttp_serve.service.CampusService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -14,7 +17,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/campuses")
@@ -24,42 +26,29 @@ public class CampusController {
 
     private final CampusService campusService;
 
-    /**
-     * 获取所有校区列表（不分页）
-     * 用于超级管理员查看系统中所有校区信息
-     * 参考文档：超级管理员录入每个校区的基本信息
-     */
     @GetMapping
     @Operation(summary = "获取所有校区列表", description = "获取系统中所有校区的列表，不分页")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "获取成功"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<List<Campus>> getAllCampuses() {
-        List<Campus> campuses = campusService.getAllCampuses();
+    public ResponseEntity<List<CampusResponseDTO>> getAllCampuses() {
+        List<CampusResponseDTO> campuses = campusService.getAllCampuses();
         return ResponseEntity.ok(campuses);
     }
 
-    /**
-     * 分页获取所有校区列表
-     * 用于前端分页展示校区信息
-     */
     @GetMapping("/page")
     @Operation(summary = "分页获取校区列表", description = "分页获取系统中所有校区的列表")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "获取成功"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<Page<Campus>> getAllCampuses(
+    public ResponseEntity<MyApiResponse<Page<CampusResponseDTO>>> getAllCampuses(
             @Parameter(description = "分页参数") Pageable pageable) {
-        Page<Campus> campuses = campusService.getAllCampuses(pageable);
-        return ResponseEntity.ok(campuses);
+        Page<CampusResponseDTO> campuses = campusService.getAllCampuses(pageable);
+        return ResponseEntity.ok(MyApiResponse.success("获取成功", campuses));
     }
 
-    /**
-     * 根据ID获取指定校区信息
-     * 用于查看某个校区的详细信息，如名称、地址、联系人等
-     */
     @GetMapping("/{id}")
     @Operation(summary = "根据ID获取校区信息", description = "根据校区ID获取校区的详细信息")
     @ApiResponses(value = {
@@ -67,18 +56,12 @@ public class CampusController {
             @ApiResponse(responseCode = "404", description = "校区不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<Campus> getCampusById(
+    public ResponseEntity<CampusResponseDTO> getCampusById(
             @Parameter(description = "校区ID", required = true) @PathVariable Long id) {
-        Optional<Campus> campus = campusService.getCampusById(id);
-        return campus.map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        CampusResponseDTO campus = campusService.getCampusById(id);
+        return ResponseEntity.ok(campus);
     }
 
-    /**
-     * 创建新校区
-     * 超级管理员用于录入新校区的基本信息，如名字、地址、联系方式等
-     * 参考文档：超级管理员录入每个校区的基本信息
-     */
     @PostMapping
     @Operation(summary = "创建新校区", description = "创建新校区，需要超级管理员权限")
     @ApiResponses(value = {
@@ -87,17 +70,12 @@ public class CampusController {
             @ApiResponse(responseCode = "403", description = "权限不足"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<Campus> createCampus(
-            @Parameter(description = "校区信息", required = true) @RequestBody Campus campus) {
-        Campus createdCampus = campusService.createCampus(campus);
+    public ResponseEntity<CampusResponseDTO> createCampus(
+            @Parameter(description = "校区信息", required = true) @RequestBody CampusRequestDTO campusRequestDTO) {
+        CampusResponseDTO createdCampus = campusService.createCampus(campusRequestDTO);
         return ResponseEntity.ok(createdCampus);
     }
 
-    /**
-     * 更新指定校区信息
-     * 超级管理员或校区管理员可修改校区基本信息
-     * 参考文档：校区管理员可以对教练员信息进行管理（修改）
-     */
     @PutMapping("/{id}")
     @Operation(summary = "更新校区信息", description = "更新指定校区的信息，需要管理员权限")
     @ApiResponses(value = {
@@ -107,17 +85,13 @@ public class CampusController {
             @ApiResponse(responseCode = "404", description = "校区不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<Campus> updateCampus(
+    public ResponseEntity<CampusResponseDTO> updateCampus(
             @Parameter(description = "校区ID", required = true) @PathVariable Long id,
-            @Parameter(description = "校区信息", required = true) @RequestBody Campus campus) {
-        Campus updatedCampus = campusService.updateCampus(id, campus);
+            @Parameter(description = "校区信息", required = true) @RequestBody CampusRequestDTO campusRequestDTO) {
+        CampusResponseDTO updatedCampus = campusService.updateCampus(id, campusRequestDTO);
         return ResponseEntity.ok(updatedCampus);
     }
 
-    /**
-     * 删除指定校区
-     * 超级管理员可删除无子校区、无用户的校区
-     */
     @DeleteMapping("/{id}")
     @Operation(summary = "删除校区", description = "删除指定校区，需要超级管理员权限")
     @ApiResponses(value = {
@@ -133,26 +107,17 @@ public class CampusController {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * 获取所有顶级校区（无父校区的校区）
-     * 用于展示中心校区或独立校区
-     */
     @GetMapping("/top-level")
     @Operation(summary = "获取顶级校区", description = "获取所有无父校区的顶级校区")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "获取成功"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<List<Campus>> getTopLevelCampuses() {
-        List<Campus> campuses = campusService.getTopLevelCampuses();
+    public ResponseEntity<List<CampusResponseDTO>> getTopLevelCampuses() {
+        List<CampusResponseDTO> campuses = campusService.getTopLevelCampuses();
         return ResponseEntity.ok(campuses);
     }
 
-    /**
-     * 获取指定校区的所有子校区
-     * 用于查看某个中心校区下的所有分校区
-     * 参考文档：超级管理员指定中心校区和若干分校区
-     */
     @GetMapping("/{id}/children")
     @Operation(summary = "获取子校区", description = "获取指定校区的所有子校区")
     @ApiResponses(value = {
@@ -160,32 +125,24 @@ public class CampusController {
             @ApiResponse(responseCode = "404", description = "校区不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<List<Campus>> getChildCampuses(
+    public ResponseEntity<List<CampusResponseDTO>> getChildCampuses(
             @Parameter(description = "校区ID", required = true) @PathVariable Long id) {
-        List<Campus> campuses = campusService.getChildCampuses(id);
+        List<CampusResponseDTO> campuses = campusService.getChildCampuses(id);
         return ResponseEntity.ok(campuses);
     }
 
-    /**
-     * 根据名称搜索校区
-     * 用于快速定位某个校区
-     */
     @GetMapping("/search")
     @Operation(summary = "搜索校区", description = "根据名称搜索校区")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "搜索成功"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<List<Campus>> searchCampuses(
+    public ResponseEntity<List<CampusResponseDTO>> searchCampuses(
             @Parameter(description = "校区名称", required = true) @RequestParam String name) {
-        List<Campus> campuses = campusService.searchCampusesByName(name);
+        List<CampusResponseDTO> campuses = campusService.searchCampusesByName(name);
         return ResponseEntity.ok(campuses);
     }
 
-    /**
-     * 获取指定校区及其所有子校区（递归）
-     * 用于展示校区树形结构中的某一条分支
-     */
     @GetMapping("/{id}/with-children")
     @Operation(summary = "获取校区及其子校区", description = "获取指定校区及其所有子校区（递归）")
     @ApiResponses(value = {
@@ -193,32 +150,23 @@ public class CampusController {
             @ApiResponse(responseCode = "404", description = "校区不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<List<Campus>> getCampusWithChildren(
+    public ResponseEntity<List<CampusResponseDTO>> getCampusWithChildren(
             @Parameter(description = "校区ID", required = true) @PathVariable Long id) {
-        List<Campus> campuses = campusService.getCampusWithChildren(id);
+        List<CampusResponseDTO> campuses = campusService.getCampusWithChildren(id);
         return ResponseEntity.ok(campuses);
     }
 
-    /**
-     * 获取完整的校区树形结构
-     * 用于展示系统中所有校区的层级关系
-     */
     @GetMapping("/tree")
     @Operation(summary = "获取校区树", description = "获取完整的校区树形结构")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "获取成功"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<List<Campus>> getCampusTree() {
-        List<Campus> campuses = campusService.getCampusTree();
+    public ResponseEntity<List<CampusResponseDTO>> getCampusTree() {
+        List<CampusResponseDTO> campuses = campusService.getCampusTree();
         return ResponseEntity.ok(campuses);
     }
 
-    /**
-     * 获取指定校区的统计信息
-     * 包括用户数量、学员数量、教练数量、管理员数量、子校区数量等
-     * 用于校区管理员或超级管理员查看校区运营情况
-     */
     @GetMapping("/{id}/stats")
     @Operation(summary = "获取校区统计信息", description = "获取指定校区的统计信息，包括用户数量、学员数量等")
     @ApiResponses(value = {
@@ -226,9 +174,32 @@ public class CampusController {
             @ApiResponse(responseCode = "404", description = "校区不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<CampusService.CampusStats> getCampusStats(
+    public ResponseEntity<CampusStatsDTO> getCampusStats(
             @Parameter(description = "校区ID", required = true) @PathVariable Long id) {
-        CampusService.CampusStats stats = campusService.getCampusStats(id);
+        CampusStatsDTO stats = campusService.getCampusStats(id);
         return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/count")
+    @Operation(summary = "获取校区总数", description = "获取系统中所有校区的总数量")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功"),
+            @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
+    public ResponseEntity<Long> getTotalCampusCount() {
+        Long count = campusService.countCampuses();
+        return ResponseEntity.ok(count);
+    }
+
+    @GetMapping("/{id}/count/children")
+    @Operation(summary = "获取子校区数量", description = "获取指定校区的所有子校区数量")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功"),
+            @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
+    public ResponseEntity<Long> getChildCampusCount(
+            @Parameter(description = "校区ID", required = true) @PathVariable Long id) {
+        Long count = campusService.countChildCampuses(id);
+        return ResponseEntity.ok(count);
     }
 }

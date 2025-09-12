@@ -1,12 +1,10 @@
 package com.example.ttp_serve.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
-import jakarta.validation.constraints.NotBlank;
-
 @Data
-public class CampusUpdateDto {
-
+public class CampusRequestDTO {
     @NotBlank(message = "校区名称不能为空")
     private String name;
 

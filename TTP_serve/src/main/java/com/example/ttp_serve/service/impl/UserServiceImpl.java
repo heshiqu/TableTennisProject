@@ -1,10 +1,13 @@
 package com.example.ttp_serve.service.impl;
 
+import com.example.ttp_serve.dto.UserRequestDTO;
+import com.example.ttp_serve.entity.Campus;
 import com.example.ttp_serve.entity.User;
 import com.example.ttp_serve.enums.UserStatus;
 import com.example.ttp_serve.enums.UserType;
 import com.example.ttp_serve.exception.DuplicateResourceException;
 import com.example.ttp_serve.exception.ResourceNotFoundException;
+import com.example.ttp_serve.repository.CampusRepository;
 import com.example.ttp_serve.repository.UserRepository;
 import com.example.ttp_serve.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +30,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CampusRepository campusRepository;
 
     @Override
     public Optional<User> getUserById(Long id) {
@@ -50,27 +54,44 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public User createUser(User user) {
+    public User createUserFromRequest(UserRequestDTO userRequest) {
         // 检查用户名是否已存在
-        if (userRepository.existsByUsername(user.getUsername())) {
-            throw new DuplicateResourceException("用户名 '" + user.getUsername() + "' 已存在");
+        if (userRepository.existsByUsername(userRequest.getUsername())) {
+            throw new DuplicateResourceException("用户名 '" + userRequest.getUsername() + "' 已存在");
         }
 
         // 检查手机号是否已存在
-        if (user.getPhone() != null && userRepository.findByPhone(user.getPhone()).isPresent()) {
-            throw new DuplicateResourceException("手机号 '" + user.getPhone() + "' 已存在");
+        if (userRequest.getPhone() != null && userRepository.findByPhone(userRequest.getPhone()).isPresent()) {
+            throw new DuplicateResourceException("手机号 '" + userRequest.getPhone() + "' 已存在");
         }
 
         // 检查邮箱是否已存在
-        if (user.getEmail() != null && userRepository.findByEmail(user.getEmail()).isPresent()) {
-            throw new DuplicateResourceException("邮箱 '" + user.getEmail() + "' 已存在");
+        if (userRequest.getEmail() != null && userRepository.findByEmail(userRequest.getEmail()).isPresent()) {
+            throw new DuplicateResourceException("邮箱 '" + userRequest.getEmail() + "' 已存在");
         }
 
-        // 加密密码
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        User user = new User();
+        user.setUsername(userRequest.getUsername());
+        user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
+        user.setRealName(userRequest.getRealName());
+        user.setGender(userRequest.getGender());
+        user.setAge(userRequest.getAge());
+        user.setPhone(userRequest.getPhone());
+        user.setEmail(userRequest.getEmail());
+        user.setAvatar(userRequest.getAvatar());
+        user.setUserType(userRequest.getUserType());
+
+        // 设置校区
+        if (userRequest.getCampusId() != null) {
+            Campus campus = campusRepository.findById(userRequest.getCampusId())
+                    .orElseThrow(() -> new ResourceNotFoundException("校区ID '" + userRequest.getCampusId() + "' 不存在"));
+            user.setCampus(campus);
+        }
 
         // 设置默认状态
-        if (user.getStatus() == null) {
+        if (userRequest.getStatus() != null) {
+            user.setStatus(userRequest.getStatus());
+        } else {
             user.setStatus(UserStatus.ACTIVE);
         }
 
@@ -83,66 +104,115 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public User updateUser(Long id, User user) {
+    public User updateUserFromRequest(Long id, UserRequestDTO userRequest) {
         User existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("用户ID '" + id + "' 不存在"));
 
         // 检查用户名是否与其他用户冲突
-        if (user.getUsername() != null && !user.getUsername().equals(existingUser.getUsername())) {
-            if (userRepository.existsByUsername(user.getUsername())) {
-                throw new DuplicateResourceException("用户名 '" + user.getUsername() + "' 已存在");
+        if (userRequest.getUsername() != null && !userRequest.getUsername().equals(existingUser.getUsername())) {
+            if (userRepository.existsByUsername(userRequest.getUsername())) {
+                throw new DuplicateResourceException("用户名 '" + userRequest.getUsername() + "' 已存在");
             }
-            existingUser.setUsername(user.getUsername());
+            existingUser.setUsername(userRequest.getUsername());
         }
 
         // 检查手机号是否与其他用户冲突
-        if (user.getPhone() != null && !user.getPhone().equals(existingUser.getPhone())) {
-            if (userRepository.findByPhone(user.getPhone()).isPresent()) {
-                throw new DuplicateResourceException("手机号 '" + user.getPhone() + "' 已存在");
+        if (userRequest.getPhone() != null && !userRequest.getPhone().equals(existingUser.getPhone())) {
+            if (userRepository.findByPhone(userRequest.getPhone()).isPresent()) {
+                throw new DuplicateResourceException("手机号 '" + userRequest.getPhone() + "' 已存在");
             }
-            existingUser.setPhone(user.getPhone());
+            existingUser.setPhone(userRequest.getPhone());
         }
 
         // 检查邮箱是否与其他用户冲突
-        if (user.getEmail() != null && !user.getEmail().equals(existingUser.getEmail())) {
-            if (userRepository.findByEmail(user.getEmail()).isPresent()) {
-                throw new DuplicateResourceException("邮箱 '" + user.getEmail() + "' 已存在");
+        if (userRequest.getEmail() != null && !userRequest.getEmail().equals(existingUser.getEmail())) {
+            if (userRepository.findByEmail(userRequest.getEmail()).isPresent()) {
+                throw new DuplicateResourceException("邮箱 '" + userRequest.getEmail() + "' 已存在");
             }
-            existingUser.setEmail(user.getEmail());
+            existingUser.setEmail(userRequest.getEmail());
         }
 
         // 更新允许修改的字段
-        if (user.getRealName() != null) {
-            existingUser.setRealName(user.getRealName());
+        if (userRequest.getRealName() != null) {
+            existingUser.setRealName(userRequest.getRealName());
         }
 
-        if (user.getGender() != null) {
-            existingUser.setGender(user.getGender());
+        if (userRequest.getGender() != null) {
+            existingUser.setGender(userRequest.getGender());
         }
 
-        if (user.getAge() != null) {
-            existingUser.setAge(user.getAge());
+        if (userRequest.getAge() != null) {
+            existingUser.setAge(userRequest.getAge());
         }
 
-        if (user.getAvatar() != null) {
-            existingUser.setAvatar(user.getAvatar());
+        if (userRequest.getAvatar() != null) {
+            existingUser.setAvatar(userRequest.getAvatar());
         }
 
-        if (user.getUserType() != null) {
-            existingUser.setUserType(user.getUserType());
+        if (userRequest.getUserType() != null) {
+            existingUser.setUserType(userRequest.getUserType());
         }
 
-        if (user.getCampus() != null) {
-            existingUser.setCampus(user.getCampus());
+        if (userRequest.getCampusId() != null) {
+            Campus campus = campusRepository.findById(userRequest.getCampusId())
+                    .orElseThrow(() -> new ResourceNotFoundException("校区ID '" + userRequest.getCampusId() + "' 不存在"));
+            existingUser.setCampus(campus);
         }
 
-        if (user.getStatus() != null) {
-            existingUser.setStatus(user.getStatus());
+        if (userRequest.getStatus() != null) {
+            existingUser.setStatus(userRequest.getStatus());
         }
 
         existingUser.setUpdatedAt(LocalDateTime.now());
 
         return userRepository.save(existingUser);
+    }
+
+    // 原有方法保持不变，但需要将createUser和updateUser方法标记为过时或删除
+    @Override
+    @Transactional
+    @Deprecated
+    public User createUser(User user) {
+        // 保持原有实现，但标记为过时
+        UserRequestDTO dto = new UserRequestDTO();
+        dto.setUsername(user.getUsername());
+        dto.setPassword(user.getPassword());
+        dto.setRealName(user.getRealName());
+        dto.setGender(user.getGender());
+        dto.setAge(user.getAge());
+        dto.setPhone(user.getPhone());
+        dto.setEmail(user.getEmail());
+        dto.setAvatar(user.getAvatar());
+        dto.setUserType(user.getUserType());
+        if (user.getCampus() != null) {
+            dto.setCampusId(user.getCampus().getId());
+        }
+        dto.setStatus(user.getStatus());
+
+        return createUserFromRequest(dto);
+    }
+
+    @Override
+    @Transactional
+    @Deprecated
+    public User updateUser(Long id, User user) {
+        // 保持原有实现，但标记为过时
+        UserRequestDTO dto = new UserRequestDTO();
+        dto.setUsername(user.getUsername());
+        dto.setPassword(user.getPassword());
+        dto.setRealName(user.getRealName());
+        dto.setGender(user.getGender());
+        dto.setAge(user.getAge());
+        dto.setPhone(user.getPhone());
+        dto.setEmail(user.getEmail());
+        dto.setAvatar(user.getAvatar());
+        dto.setUserType(user.getUserType());
+        if (user.getCampus() != null) {
+            dto.setCampusId(user.getCampus().getId());
+        }
+        dto.setStatus(user.getStatus());
+
+        return updateUserFromRequest(id, dto);
     }
 
     @Override
@@ -228,6 +298,34 @@ public class UserServiceImpl implements UserService {
         // 验证密码强度（可以根据需要添加更复杂的验证）
         if (newPassword.length() < 8) {
             throw new IllegalArgumentException("密码长度至少需要8个字符");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setUpdatedAt(LocalDateTime.now());
+
+        return userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public User changePasswordWithOldPassword(Long id, String oldPassword, String newPassword) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("用户ID '" + id + "' 不存在"));
+
+        // 验证原始密码
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new IllegalArgumentException("原始密码错误");
+        }
+
+        // 验证密码强度（可以根据需要添加更复杂的验证）
+        if (newPassword.length() < 8) {
+            throw new IllegalArgumentException("密码长度至少需要8个字符");
+        }
+
+        // 验证密码复杂度（包含字母、数字和特殊字符）
+        String pattern = "^(?=.*[a-zA-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$";
+        if (!newPassword.matches(pattern)) {
+            throw new IllegalArgumentException("密码必须包含字母、数字和特殊字符，长度为8-16位");
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -351,6 +449,21 @@ public class UserServiceImpl implements UserService {
         }
 
         return stats;
+    }
+
+    @Override
+    public Long countUsersByCampusIdAndType(Long campusId, UserType userType) {
+        return userRepository.countByCampusIdAndUserType(campusId, userType);
+    }
+
+    @Override
+    public Page<User> getUsersByType(UserType userType, Pageable pageable) {
+        return userRepository.findByUserType(userType, pageable);
+    }
+
+    @Override
+    public Page<User> getUsersByTypeAndCampusId(UserType userType, Long campusId, Pageable pageable) {
+        return userRepository.findByUserTypeAndCampusId(userType, campusId, pageable);
     }
 
 

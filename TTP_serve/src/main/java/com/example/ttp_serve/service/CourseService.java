@@ -3,6 +3,8 @@ package com.example.ttp_serve.service;
 import com.example.ttp_serve.dto.CourseRequestDTO;
 import com.example.ttp_serve.entity.Course;
 import com.example.ttp_serve.enums.CourseStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -59,6 +61,9 @@ public interface CourseService {
 
     // 统计学员的课程数量
     Long countCoursesByStudent(Long studentId);
+
+    // 分页获取所有课程
+    Page<Course> getAllCourses(Pageable pageable);
 
     // 获取即将开始的课程（用于提醒）
     List<Course> getUpcomingCourses(int hours);

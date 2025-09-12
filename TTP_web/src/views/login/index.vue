@@ -112,7 +112,26 @@ export default {
           this.$store.dispatch('user/login', this.loginForm).then(() => {
             this.$store.dispatch('user/getInfo').then(() => {
               this.$message.success('登录成功')
-              this.$router.push({ path: this.redirect || '/' })
+              
+              // 根据用户角色跳转到对应的首页
+              const roles = this.$store.getters.roles
+              let redirectPath = this.redirect || '/'
+              
+              if (!this.redirect) {
+                if (roles.includes('SUPER_ADMIN')) {
+                  redirectPath = '/super-admin-dashboard'
+                } else if (roles.includes('ADMIN')) {
+                  redirectPath = '/admin-dashboard'
+                } else if (roles.includes('CAMPUS_ADMIN')) {
+                  redirectPath = '/campus-dashboard'
+                } else if (roles.includes('COACH')) {
+                  redirectPath = '/coach-dashboard'
+                } else if (roles.includes('STUDENT')) {
+                  redirectPath = '/student-dashboard'
+                }
+              }
+              
+              this.$router.push({ path: redirectPath })
             })
             this.loading = false
           }).catch((error) => {

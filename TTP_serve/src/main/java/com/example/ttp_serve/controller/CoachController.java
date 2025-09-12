@@ -73,4 +73,25 @@ public class CoachController {
         CoachDTO coach = coachService.getCoachDetail(coachId);
         return ResponseEntity.ok(coach);
     }
+
+    @GetMapping("/count")
+    @Operation(summary = "获取教练总数", description = "获取系统中所有教练的总数量")
+    @ApiResponse(responseCode = "200", description = "成功获取教练数量")
+    public ResponseEntity<Long> getTotalCoachCount() {
+        long count = coachService.getTotalCoachCount();
+        return ResponseEntity.ok(count);
+    }
+
+    @GetMapping("/count/campus/{campusId}")
+    @Operation(summary = "获取校区教练数量", description = "获取指定校区的教练数量")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功获取校区教练数量"),
+            @ApiResponse(responseCode = "400", description = "校区ID无效")
+    })
+    public ResponseEntity<Long> getCoachCountByCampus(
+            @Parameter(description = "校区ID", required = true, example = "1") 
+            @PathVariable Long campusId) {
+        long count = coachService.getCoachCountByCampus(campusId);
+        return ResponseEntity.ok(count);
+    }
 }

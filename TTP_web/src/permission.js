@@ -33,8 +33,26 @@ router.beforeEach(async(to, from, next) => {
         try {
           // get user info
           await store.dispatch('user/getInfo')
-
-          next()
+          
+          const roles = store.getters.roles
+          if (to.path === '/') {
+            // 根据用户角色跳转到对应的首页
+            let redirectPath = '/'
+            if (roles.includes('SUPER_ADMIN')) {
+              redirectPath = '/super-admin-dashboard'
+            } else if (roles.includes('ADMIN')) {
+              redirectPath = '/admin-dashboard'
+            } else if (roles.includes('CAMPUS_ADMIN')) {
+              redirectPath = '/campus-dashboard'
+            } else if (roles.includes('COACH')) {
+              redirectPath = '/coach-dashboard'
+            } else if (roles.includes('STUDENT')) {
+              redirectPath = '/student-dashboard'
+            }
+            next(redirectPath)
+          } else {
+            next()
+          }
         } catch (error) {
           // remove token and go to login page to re-login
           await store.dispatch('user/resetToken')

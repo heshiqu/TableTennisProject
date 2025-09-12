@@ -42,4 +42,14 @@ public interface CoachRepository extends JpaRepository<Coach, Long>, JpaSpecific
      */
     List<Coach> findByLevel(CoachLevel level);
 
+    /**
+     * 统计所有教练数量
+     */
+    long count();
+
+    /**
+     * 根据校区ID统计教练数量
+     */
+    long countByCampusId(Long campusId);
+
 }

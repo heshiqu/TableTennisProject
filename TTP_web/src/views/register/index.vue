@@ -128,22 +128,22 @@
         />
       </el-form-item>
 
-      <!-- 学员特有字段 -->
-      <template v-if="registerForm.userType === 'STUDENT'">
-        <el-form-item prop="initialBalance">
-          <span class="svg-container">
-            <svg-icon icon-class="money" />
-          </span>
-          <el-input-number
-            v-model="registerForm.initialBalance"
-            :min="0"
-            :precision="2"
-            :step="100"
-            placeholder="初始余额 (可选)"
-            style="width: 85%"
+      <!-- 校区选择 -->
+      <el-form-item prop="campusId">
+        <span class="svg-container">
+          <svg-icon icon-class="nested" />
+        </span>
+        <el-select v-model="registerForm.campusId" placeholder="请选择校区" style="width: 85%">
+          <el-option
+            v-for="campus in campusList"
+            :key="campus.id"
+            :label="campus.name"
+            :value="campus.id"
           />
-        </el-form-item>
-      </template>
+        </el-select>
+      </el-form-item>
+
+      <!-- 学员特有字段 - 余额字段已移除，注册时默认余额为0 -->
 
       <!-- 教练特有字段 -->
       <template v-if="registerForm.userType === 'COACH'">
@@ -223,6 +223,13 @@ export default {
     }
 
     return {
+      campusList: [
+        { id: 1, name: '中心校区' },
+        { id: 2, name: '东校区' },
+        { id: 3, name: '西校区' },
+        { id: 4, name: '南校区' },
+        { id: 5, name: '北校区' }
+      ],
       registerForm: {
         userType: 'STUDENT',
         username: '',
@@ -233,7 +240,7 @@ export default {
         age: 18,
         phone: '',
         email: '',
-        initialBalance: 0,
+        campusId: '',
         level: 'JUNIOR',
         awards: ''
       },
@@ -268,6 +275,9 @@ export default {
           { required: false, message: '请输入邮箱地址', trigger: 'blur' },
           { validator: validateEmail, trigger: 'blur' }
         ],
+        campusId: [
+        { required: true, message: '请选择校区', trigger: 'change' }
+      ],
         level: [{ required: true, message: '请选择教练等级', trigger: 'change' }]
       },
       loading: false,
@@ -275,12 +285,53 @@ export default {
       confirmPasswordType: 'password'
     }
   },
+  mounted() {
+    this.loadCampusList()
+  },
   methods: {
     showPwd() {
       this.passwordType = this.passwordType === 'password' ? '' : 'password'
     },
     showConfirmPwd() {
       this.confirmPasswordType = this.confirmPasswordType === 'password' ? '' : 'password'
+    },
+    async loadCampusList() {
+      try {
+        const { getCampusList } = require('@/api/campus')
+        const response = await getCampusList()
+        
+        // 检查响应数据结构，兼容不同格式
+        let campusData = []
+        if (response && response.data) {
+          campusData = Array.isArray(response.data) ? response.data : response
+        } else if (Array.isArray(response)) {
+          campusData = response
+        }
+        
+        if (campusData.length > 0) {
+          this.campusList = campusData.map(campus => ({
+            id: campus.id,
+            name: campus.name
+          }))
+        } else {
+          // 静默使用默认数据，不显示错误
+          this.campusList = [
+            { id: 1, name: '中心校区' },
+            { id: 2, name: '海淀分校区' },
+            { id: 3, name: '朝阳分校区' }
+          ]
+        }
+      } catch (error) {
+        // 静默处理错误，只在开发环境打印
+        if (process.env.NODE_ENV === 'development') {
+          console.log('校区数据加载提示:', '使用默认校区数据')
+        }
+        this.campusList = [
+          { id: 1, name: '中心校区' },
+          { id: 2, name: '海淀分校区' },
+          { id: 3, name: '朝阳分校区' }
+        ]
+      }
     },
     handleRegister() {
       this.$refs.registerForm.validate(valid => {
@@ -295,12 +346,13 @@ export default {
             age: this.registerForm.age,
             phone: this.registerForm.phone,
             email: this.registerForm.email,
+            campusId: this.registerForm.campusId,
             userType: this.registerForm.userType
           }
 
           // 添加用户类型特有字段
           if (this.registerForm.userType === 'STUDENT') {
-            registerData.initialBalance = this.registerForm.initialBalance
+            registerData.initialBalance = 0 // 学生注册时初始余额固定为0
           } else if (this.registerForm.userType === 'COACH') {
             registerData.level = this.registerForm.level
             registerData.awards = this.registerForm.awards
@@ -313,7 +365,13 @@ export default {
             this.$router.push('/login')
             this.loading = false
           }).catch(error => {
-            this.$message.error(error.message || '注册失败')
+            let errorMessage = '注册失败'
+            if (error.response && error.response.data) {
+              errorMessage = error.response.data.message || error.response.data.error || '注册失败'
+            } else if (error.message) {
+              errorMessage = error.message
+            }
+            this.$message.error(errorMessage)
             this.loading = false
           })
         } else {

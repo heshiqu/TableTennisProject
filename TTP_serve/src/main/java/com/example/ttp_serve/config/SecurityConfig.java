@@ -53,6 +53,8 @@ public class SecurityConfig {
                                 "/api/courses/student/**",
                                 "/api/courses/coach/**",
                                 "/api/payments/**",
+                                "/api/students",
+                                "/api/students/**",
                                 "/webjars/**"
                         ).permitAll()
                         .requestMatchers(

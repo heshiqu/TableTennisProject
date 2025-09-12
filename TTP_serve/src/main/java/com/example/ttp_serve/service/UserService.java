@@ -1,5 +1,6 @@
 package com.example.ttp_serve.service;
 
+import com.example.ttp_serve.dto.UserRequestDTO;
 import com.example.ttp_serve.entity.User;
 import com.example.ttp_serve.enums.UserStatus;
 import com.example.ttp_serve.enums.UserType;
@@ -61,8 +62,17 @@ public interface UserService {
     // 验证用户凭证
     boolean validateUserCredentials(String username, String password);
 
+    // 使用DTO创建用户
+    User createUserFromRequest(UserRequestDTO userRequest);
+
+    // 使用DTO更新用户
+    User updateUserFromRequest(Long id, UserRequestDTO userRequest);
+
     // 更改密码
     User changePassword(Long id, String newPassword);
+    
+    // 带原始密码验证的密码修改
+    User changePasswordWithOldPassword(Long id, String oldPassword, String newPassword);
 
     // 检查用户名是否已存在
     boolean isUsernameExists(String username);
@@ -119,4 +129,24 @@ public interface UserService {
     }
 
     public UserStats getUserStats();
+
+    // 根据校区ID和用户类型获取用户数量
+    Long countUsersByCampusIdAndType(Long campusId, UserType userType);
+
+    /**
+     * 根据用户类型分页获取用户列表
+     * @param userType 用户类型
+     * @param pageable 分页参数
+     * @return 用户分页列表
+     */
+    Page<User> getUsersByType(UserType userType, Pageable pageable);
+
+    /**
+     * 根据用户类型和校区ID分页获取用户列表
+     * @param userType 用户类型
+     * @param campusId 校区ID
+     * @param pageable 分页参数
+     * @return 用户分页列表
+     */
+    Page<User> getUsersByTypeAndCampusId(UserType userType, Long campusId, Pageable pageable);
 }

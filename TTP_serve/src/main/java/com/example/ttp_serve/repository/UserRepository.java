@@ -58,6 +58,16 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Long countByStatus(UserStatus status);
 
+
+    /**
+     * 根据用户类型和校区ID分页获取用户列表
+     * @param userType 用户类型
+     * @param campusId 校区ID
+     * @param pageable 分页参数
+     * @return 用户分页列表
+     */
+    Page<User> findByUserTypeAndCampusId(UserType userType, Long campusId, Pageable pageable);
+
     @Query("SELECT COUNT(u) FROM User u WHERE u.campus.id = :campusId AND u.userType IN :userTypes")
     Long countByCampusIdAndUserTypeIn(@Param("campusId") Long campusId,
                                       @Param("userTypes") List<UserType> userTypes);

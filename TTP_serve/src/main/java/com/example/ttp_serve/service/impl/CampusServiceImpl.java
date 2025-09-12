@@ -1,5 +1,8 @@
 package com.example.ttp_serve.service.impl;
 
+import com.example.ttp_serve.dto.CampusRequestDTO;
+import com.example.ttp_serve.dto.CampusResponseDTO;
+import com.example.ttp_serve.dto.CampusStatsDTO;
 import com.example.ttp_serve.entity.Campus;
 import com.example.ttp_serve.entity.User;
 import com.example.ttp_serve.enums.UserType;
@@ -19,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,31 +32,42 @@ public class CampusServiceImpl implements CampusService {
     private final UserRepository userRepository;
 
     @Override
-    public List<Campus> getAllCampuses() {
-        return campusRepository.findAll();
+    public List<CampusResponseDTO> getAllCampuses() {
+        List<Campus> campuses = campusRepository.findAll();
+        return campuses.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
     @Override
-    public Page<Campus> getAllCampuses(Pageable pageable) {
-        return campusRepository.findAll(pageable);
+    public Page<CampusResponseDTO> getAllCampuses(Pageable pageable) {
+        Page<Campus> campuses = campusRepository.findAll(pageable);
+        return campuses.map(this::convertToDTO);
     }
 
     @Override
-    public Optional<Campus> getCampusById(Long id) {
-        return campusRepository.findById(id);
+    public CampusResponseDTO getCampusById(Long id) {
+        Campus campus = campusRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("校区ID '" + id + "' 不存在"));
+        return convertToDTO(campus);
     }
 
     @Override
     @Transactional
-    public Campus createCampus(Campus campus) {
+    public CampusResponseDTO createCampus(CampusRequestDTO campusRequestDTO) {
         // 检查校区名称是否已存在
-        if (isCampusNameExists(campus.getName())) {
-            throw new DuplicateResourceException("校区名称 '" + campus.getName() + "' 已存在");
+        if (isCampusNameExists(campusRequestDTO.getName())) {
+            throw new DuplicateResourceException("校区名称 '" + campusRequestDTO.getName() + "' 已存在");
         }
 
+        Campus campus = new Campus();
+        campus.setName(campusRequestDTO.getName());
+        campus.setAddress(campusRequestDTO.getAddress());
+        campus.setContactPerson(campusRequestDTO.getContactPerson());
+        campus.setContactPhone(campusRequestDTO.getContactPhone());
+        campus.setEmail(campusRequestDTO.getEmail());
+
         // 检查父校区是否存在（如果指定了父校区）
-        if (campus.getParent() != null && campus.getParent().getId() != null) {
-            Campus parentCampus = campusRepository.findById(campus.getParent().getId())
+        if (campusRequestDTO.getParentId() != null) {
+            Campus parentCampus = campusRepository.findById(campusRequestDTO.getParentId())
                     .orElseThrow(() -> new ResourceNotFoundException("父校区不存在"));
 
             campus.setParent(parentCampus);
@@ -66,44 +81,45 @@ public class CampusServiceImpl implements CampusService {
         campus.setCreatedAt(LocalDateTime.now());
         campus.setUpdatedAt(LocalDateTime.now());
 
-        return campusRepository.save(campus);
+        Campus savedCampus = campusRepository.save(campus);
+        return convertToDTO(savedCampus);
     }
 
     @Override
     @Transactional
-    public Campus updateCampus(Long id, Campus campus) {
+    public CampusResponseDTO updateCampus(Long id, CampusRequestDTO campusRequestDTO) {
         Campus existingCampus = campusRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("校区ID '" + id + "' 不存在"));
 
         // 检查校区名称是否与其他校区冲突
-        if (campus.getName() != null && !campus.getName().equals(existingCampus.getName())) {
-            if (isCampusNameExists(campus.getName(), id)) {
-                throw new DuplicateResourceException("校区名称 '" + campus.getName() + "' 已存在");
+        if (campusRequestDTO.getName() != null && !campusRequestDTO.getName().equals(existingCampus.getName())) {
+            if (isCampusNameExists(campusRequestDTO.getName(), id)) {
+                throw new DuplicateResourceException("校区名称 '" + campusRequestDTO.getName() + "' 已存在");
             }
-            existingCampus.setName(campus.getName());
+            existingCampus.setName(campusRequestDTO.getName());
         }
 
         // 更新地址信息
-        if (campus.getAddress() != null) {
-            existingCampus.setAddress(campus.getAddress());
+        if (campusRequestDTO.getAddress() != null) {
+            existingCampus.setAddress(campusRequestDTO.getAddress());
         }
 
         // 更新联系人信息
-        if (campus.getContactPerson() != null) {
-            existingCampus.setContactPerson(campus.getContactPerson());
+        if (campusRequestDTO.getContactPerson() != null) {
+            existingCampus.setContactPerson(campusRequestDTO.getContactPerson());
         }
 
-        if (campus.getContactPhone() != null) {
-            existingCampus.setContactPhone(campus.getContactPhone());
+        if (campusRequestDTO.getContactPhone() != null) {
+            existingCampus.setContactPhone(campusRequestDTO.getContactPhone());
         }
 
-        if (campus.getEmail() != null) {
-            existingCampus.setEmail(campus.getEmail());
+        if (campusRequestDTO.getEmail() != null) {
+            existingCampus.setEmail(campusRequestDTO.getEmail());
         }
 
         // 更新父校区关系
-        if (campus.getParent() != null && campus.getParent().getId() != null) {
-            Campus parentCampus = campusRepository.findById(campus.getParent().getId())
+        if (campusRequestDTO.getParentId() != null) {
+            Campus parentCampus = campusRepository.findById(campusRequestDTO.getParentId())
                     .orElseThrow(() -> new ResourceNotFoundException("父校区不存在"));
 
             // 检查是否形成循环引用
@@ -112,14 +128,15 @@ public class CampusServiceImpl implements CampusService {
             }
 
             existingCampus.setParent(parentCampus);
-        } else if (campus.getParent() == null) {
+        } else {
             // 清除父校区关系
             existingCampus.setParent(null);
         }
 
         existingCampus.setUpdatedAt(LocalDateTime.now());
 
-        return campusRepository.save(existingCampus);
+        Campus updatedCampus = campusRepository.save(existingCampus);
+        return convertToDTO(updatedCampus);
     }
 
     @Override
@@ -135,7 +152,7 @@ public class CampusServiceImpl implements CampusService {
 
         // 检查是否有用户关联到此校区
         Page<User> page = userRepository.findByCampusId(id, Pageable.unpaged());
-        List<User> usersInCampus =page.getContent(); // 提取 List<User>
+        List<User> usersInCampus = page.getContent();
         if (!usersInCampus.isEmpty()) {
             throw new BusinessException("该校区下有用户，无法删除");
         }
@@ -144,20 +161,22 @@ public class CampusServiceImpl implements CampusService {
     }
 
     @Override
-    public List<Campus> getTopLevelCampuses() {
-        return campusRepository.findByParentIsNull();
+    public List<CampusResponseDTO> getTopLevelCampuses() {
+        List<Campus> campuses = campusRepository.findByParentIsNull();
+        return campuses.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
     @Override
-    public List<Campus> getChildCampuses(Long parentId) {
-        return campusRepository.findByParentId(parentId);
+    public List<CampusResponseDTO> getChildCampuses(Long parentId) {
+        List<Campus> campuses = campusRepository.findByParentId(parentId);
+        return campuses.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
     @Override
-    public List<Campus> searchCampusesByName(String name) {
-        return campusRepository.findByName(name)
-                .map(Collections::singletonList)  // 转换为单元素列表
-                .orElse(Collections.emptyList()); // 或返回空列表
+    public List<CampusResponseDTO> searchCampusesByName(String name) {
+        Optional<Campus> campusOpt = campusRepository.findByName(name);
+        return campusOpt.map(campus -> Collections.singletonList(convertToDTO(campus)))
+                .orElse(Collections.emptyList());
     }
 
     @Override
@@ -182,12 +201,88 @@ public class CampusServiceImpl implements CampusService {
     }
 
     @Override
-    public List<Campus> getCampusWithChildren(Long campusId) {
+    public List<CampusResponseDTO> getCampusWithChildren(Long campusId) {
         Campus campus = campusRepository.findById(campusId)
                 .orElseThrow(() -> new ResourceNotFoundException("校区ID '" + campusId + "' 不存在"));
 
         // 获取所有子校区（包括子校区的子校区）
-        return getAllChildren(campus);
+        List<Campus> allChildren = getAllChildren(campus);
+        return allChildren.stream().map(this::convertToDTO).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<CampusResponseDTO> getCampusTree() {
+        List<Campus> topLevelCampuses = campusRepository.findByParentIsNull();
+        return topLevelCampuses.stream().map(this::convertToTreeDTO).collect(Collectors.toList());
+    }
+
+    @Override
+    public CampusStatsDTO getCampusStats(Long campusId) {
+        Campus campus = campusRepository.findById(campusId)
+                .orElseThrow(() -> new ResourceNotFoundException("校区ID '" + campusId + "' 不存在"));
+
+        CampusStatsDTO stats = new CampusStatsDTO();
+        stats.setCampusId(campusId);
+        stats.setCampusName(campus.getName());
+
+        // 统计用户数量
+        stats.setUserCount(userRepository.countByCampusId(campusId));
+
+        // 统计学员数量
+        stats.setStudentCount(userRepository.countByCampusIdAndUserType(campusId, UserType.STUDENT));
+
+        // 统计教练数量
+        stats.setCoachCount(userRepository.countByCampusIdAndUserType(campusId, UserType.COACH));
+
+        // 统计管理员数量
+        stats.setAdminCount(userRepository.countByCampusIdAndUserTypeIn(
+                campusId,
+                List.of(UserType.SUPER_ADMIN, UserType.CAMPUS_ADMIN)
+        ));
+
+        // 统计子校区数量
+        stats.setChildCampusCount(campusRepository.countByParentId(campusId));
+
+        return stats;
+    }
+
+    /**
+     * 将Campus实体转换为CampusResponseDTO
+     */
+    private CampusResponseDTO convertToDTO(Campus campus) {
+        CampusResponseDTO dto = new CampusResponseDTO();
+        dto.setId(campus.getId());
+        dto.setName(campus.getName());
+        dto.setAddress(campus.getAddress());
+        dto.setContactPerson(campus.getContactPerson());
+        dto.setContactPhone(campus.getContactPhone());
+        dto.setEmail(campus.getEmail());
+        dto.setCreatedAt(campus.getCreatedAt());
+        dto.setUpdatedAt(campus.getUpdatedAt());
+
+        if (campus.getParent() != null) {
+            dto.setParentId(campus.getParent().getId());
+            dto.setParentName(campus.getParent().getName());
+        }
+
+        return dto;
+    }
+
+    /**
+     * 将Campus实体转换为树形结构的CampusResponseDTO
+     */
+    private CampusResponseDTO convertToTreeDTO(Campus campus) {
+        CampusResponseDTO dto = convertToDTO(campus);
+
+        // 递归转换子校区
+        if (campus.getChildren() != null && !campus.getChildren().isEmpty()) {
+            List<CampusResponseDTO> childrenDTOs = campus.getChildren().stream()
+                    .map(this::convertToTreeDTO)
+                    .collect(Collectors.toList());
+            dto.setChildren(childrenDTOs);
+        }
+
+        return dto;
     }
 
     /**
@@ -230,20 +325,6 @@ public class CampusServiceImpl implements CampusService {
     }
 
     /**
-     * 获取校区树形结构
-     */
-    public List<Campus> getCampusTree() {
-        List<Campus> topLevelCampuses = getTopLevelCampuses();
-
-        // 为每个顶级校区构建树形结构
-        for (Campus campus : topLevelCampuses) {
-            buildCampusTree(campus);
-        }
-
-        return topLevelCampuses;
-    }
-
-    /**
      * 递归构建校区树形结构
      */
     private void buildCampusTree(Campus campus) {
@@ -254,38 +335,4 @@ public class CampusServiceImpl implements CampusService {
             buildCampusTree(child);
         }
     }
-
-    /**
-     * 获取校区统计信息
-     */
-    public CampusStats getCampusStats(Long campusId) {
-        Campus campus = campusRepository.findById(campusId)
-                .orElseThrow(() -> new ResourceNotFoundException("校区ID '" + campusId + "' 不存在"));
-
-        CampusStats stats = new CampusStats();
-        stats.setCampusId(campusId);
-        stats.setCampusName(campus.getName());
-
-        // 统计用户数量
-        stats.setUserCount(userRepository.countByCampusId(campusId));
-
-        // 统计学员数量
-        stats.setStudentCount(userRepository.countByCampusIdAndUserType(campusId, UserType.STUDENT));
-
-        // 统计教练数量
-        stats.setCoachCount(userRepository.countByCampusIdAndUserType(campusId, UserType.COACH));
-
-        // 统计管理员数量
-        stats.setAdminCount(userRepository.countByCampusIdAndUserTypeIn(
-                campusId,
-                List.of(UserType.SUPER_ADMIN, UserType.CAMPUS_ADMIN)
-        ));
-
-        // 统计子校区数量
-        stats.setChildCampusCount(campusRepository.countByParentId(campusId));
-
-        return stats;
-    }
-
-
 }

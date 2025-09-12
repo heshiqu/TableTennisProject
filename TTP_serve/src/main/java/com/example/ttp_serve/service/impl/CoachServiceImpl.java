@@ -57,6 +57,16 @@ public class CoachServiceImpl implements CoachService {
         coachRepository.deleteById(coachId);
     }
 
+    @Override
+    public long getTotalCoachCount() {
+        return coachRepository.count();
+    }
+
+    @Override
+    public long getCoachCountByCampus(Long campusId) {
+        return coachRepository.countByCampusId(campusId);
+    }
+
     /**
      * 将Coach实体转换为CoachDTO
      */
