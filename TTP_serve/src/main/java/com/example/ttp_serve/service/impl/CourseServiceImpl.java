@@ -313,6 +313,16 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    public List<Course> getCoursesByStudentAndStatus(Long studentId, CourseStatus status) {
+        // 检查学员是否存在
+        if (!userRepository.existsById(studentId)) {
+            throw new ResourceNotFoundException("学员ID '" + studentId + "' 不存在");
+        }
+
+        return courseRepository.findByStudentIdAndStatus(studentId, status);
+    }
+
+    @Override
     public boolean checkTimeConflict(Long coachId, LocalDateTime startTime, LocalDateTime endTime) {
         // 检查教练是否存在
         if (!userRepository.existsById(coachId)) {

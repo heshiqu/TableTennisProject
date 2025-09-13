@@ -1,6 +1,7 @@
 package com.example.ttp_serve.controller;
 
 import com.example.ttp_serve.dto.CoachDTO;
+import com.example.ttp_serve.dto.MyApiResponse;
 import com.example.ttp_serve.service.CoachService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,75 +24,74 @@ public class CoachController {
 
     @GetMapping("/search")
     @Operation(summary = "条件查询教练", description = "根据姓名、性别、年龄条件查询教练，至少需要一个查询条件")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "查询成功"),
-            @ApiResponse(responseCode = "400", description = "请求参数错误，至少需要一个查询条件"),
-            @ApiResponse(responseCode = "404", description = "未找到符合条件的教练")
-    })
-    public ResponseEntity<List<CoachDTO>> searchCoaches(
+    @ApiResponse(responseCode = "200", description = "查询成功")
+    public ResponseEntity<MyApiResponse<List<CoachDTO>>> searchCoaches(
             @Parameter(description = "教练姓名(模糊匹配)") @RequestParam(required = false) String name,
             @Parameter(description = "教练性别") @RequestParam(required = false) String gender,
             @Parameter(description = "教练年龄") @RequestParam(required = false) Integer age,
             @Parameter(description = "校区ID") @RequestParam Long campusId) {
-
-        List<CoachDTO> coaches = coachService.findCoachesByCriteria(name, gender, age, campusId);
-
-        if (coaches.isEmpty()) {
-            return ResponseEntity.notFound().build();
+        try {
+            List<CoachDTO> coaches = coachService.findCoachesByCriteria(name, gender, age, campusId);
+            return ResponseEntity.ok(MyApiResponse.success("查询成功", coaches));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
         }
-
-        return ResponseEntity.ok(coaches);
     }
 
     @GetMapping("/campus/{campusId}")
     @Operation(summary = "获取校区所有教练", description = "获取指定校区的所有教练列表")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "查询成功"),
-            @ApiResponse(responseCode = "404", description = "该校区没有教练")
-    })
-    public ResponseEntity<List<CoachDTO>> getAllCoachesByCampus(
+    @ApiResponse(responseCode = "200", description = "获取成功")
+    public ResponseEntity<MyApiResponse<List<CoachDTO>>> getAllCoachesByCampus(
             @Parameter(description = "校区ID") @PathVariable Long campusId) {
-
-        List<CoachDTO> coaches = coachService.findAllCoachesByCampus(campusId);
-
-        if (coaches.isEmpty()) {
-            return ResponseEntity.notFound().build();
+        try {
+            List<CoachDTO> coaches = coachService.findAllCoachesByCampus(campusId);
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", coaches));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
         }
-
-        return ResponseEntity.ok(coaches);
     }
 
     @GetMapping("/{coachId}")
     @Operation(summary = "获取教练详情", description = "根据ID获取教练的详细信息")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "查询成功"),
-            @ApiResponse(responseCode = "404", description = "未找到该教练")
-    })
-    public ResponseEntity<CoachDTO> getCoachDetail(
+    @ApiResponse(responseCode = "200", description = "获取成功")
+    public ResponseEntity<MyApiResponse<CoachDTO>> getCoachDetail(
             @Parameter(description = "教练ID") @PathVariable Long coachId) {
-
-        CoachDTO coach = coachService.getCoachDetail(coachId);
-        return ResponseEntity.ok(coach);
+        try {
+            CoachDTO coach = coachService.getCoachDetail(coachId);
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", coach));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
     }
 
     @GetMapping("/count")
     @Operation(summary = "获取教练总数", description = "获取系统中所有教练的总数量")
     @ApiResponse(responseCode = "200", description = "成功获取教练数量")
-    public ResponseEntity<Long> getTotalCoachCount() {
-        long count = coachService.getTotalCoachCount();
-        return ResponseEntity.ok(count);
+    public ResponseEntity<MyApiResponse<Long>> getTotalCoachCount() {
+        try {
+            long count = coachService.getTotalCoachCount();
+            return ResponseEntity.ok(MyApiResponse.success("统计成功", count));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
     }
 
     @GetMapping("/count/campus/{campusId}")
     @Operation(summary = "获取校区教练数量", description = "获取指定校区的教练数量")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "成功获取校区教练数量"),
-            @ApiResponse(responseCode = "400", description = "校区ID无效")
-    })
-    public ResponseEntity<Long> getCoachCountByCampus(
+    @ApiResponse(responseCode = "200", description = "成功获取校区教练数量")
+    public ResponseEntity<MyApiResponse<Long>> getCoachCountByCampus(
             @Parameter(description = "校区ID", required = true, example = "1") 
             @PathVariable Long campusId) {
-        long count = coachService.getCoachCountByCampus(campusId);
-        return ResponseEntity.ok(count);
+        try {
+            long count = coachService.getCoachCountByCampus(campusId);
+            return ResponseEntity.ok(MyApiResponse.success("统计成功", count));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
     }
 }

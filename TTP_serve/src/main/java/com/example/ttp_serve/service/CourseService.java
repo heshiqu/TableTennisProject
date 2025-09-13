@@ -38,6 +38,9 @@ public interface CourseService {
     // 获取特定状态的课程
     List<Course> getCoursesByStatus(CourseStatus status);
 
+    // 根据学员ID和状态获取课程
+    List<Course> getCoursesByStudentAndStatus(Long studentId, CourseStatus status);
+
     // 获取日期范围内的课程
     List<Course> getCoursesByDateRange(LocalDateTime start, LocalDateTime end);
 

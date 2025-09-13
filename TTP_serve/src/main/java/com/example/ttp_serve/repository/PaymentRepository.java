@@ -21,15 +21,27 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     // 根据用户ID查找支付记录
     List<Payment> findByUserId(Long userId);
+    
+    // 根据用户ID分页查找支付记录
+    Page<Payment> findByUserId(Long userId, Pageable pageable);
 
     // 根据状态查找支付记录
     List<Payment> findByStatus(PaymentStatus status);
+    
+    // 根据状态分页查找支付记录
+    Page<Payment> findByStatus(PaymentStatus status, Pageable pageable);
 
     // 根据类型查找支付记录
     List<Payment> findByPaymentType(PaymentType paymentType);
+    
+    // 根据类型分页查找支付记录
+    Page<Payment> findByPaymentType(PaymentType paymentType, Pageable pageable);
 
     // 根据方式查找支付记录
     List<Payment> findByPaymentMethod(PaymentMethod paymentMethod);
+    
+    // 根据方式分页查找支付记录
+    Page<Payment> findByPaymentMethod(PaymentMethod paymentMethod, Pageable pageable);
 
     // 根据订单号查找支付记录
     Optional<Payment> findByOrderId(String orderId);
@@ -44,9 +56,15 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     // 根据日期范围查找支付记录
     List<Payment> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+    
+    // 根据日期范围分页查找支付记录
+    Page<Payment> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end, Pageable pageable);
 
     // 根据用户ID和日期范围查找支付记录
     List<Payment> findByUserIdAndCreatedAtBetween(Long userId, LocalDateTime start, LocalDateTime end);
+    
+    // 根据用户ID和日期范围分页查找支付记录
+    Page<Payment> findByUserIdAndCreatedAtBetween(Long userId, LocalDateTime start, LocalDateTime end, Pageable pageable);
 
     // 统计用户支付总额
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.user.id = :userId AND p.status = 'SUCCESS'")

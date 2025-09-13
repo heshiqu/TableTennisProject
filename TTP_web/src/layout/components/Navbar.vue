@@ -7,7 +7,11 @@
     <div class="right-menu">
       <el-dropdown class="avatar-container" trigger="click">
         <div class="avatar-wrapper">
-          <img :src="getAvatarUrl(avatar)" class="user-avatar" @error="handleAvatarError">
+          <img 
+            :src="getAvatarSrc(avatar)"
+            class="user-avatar" 
+            @error="handleAvatarError"
+          >
           <i class="el-icon-caret-bottom" />
         </div>
         <el-dropdown-menu slot="dropdown" class="user-dropdown">
@@ -29,7 +33,6 @@
 import { mapGetters } from 'vuex'
 import Breadcrumb from '@/components/Breadcrumb'
 import Hamburger from '@/components/Hamburger'
-import { getAvatarUrl } from '@/utils/avatar'
 
 export default {
   components: {
@@ -43,7 +46,6 @@ export default {
     ])
   },
   methods: {
-    getAvatarUrl,
     toggleSideBar() {
       this.$store.dispatch('app/toggleSideBar')
     },
@@ -51,9 +53,26 @@ export default {
       await this.$store.dispatch('user/logout')
       this.$router.push(`/login?redirect=${this.$route.fullPath}`)
     },
+    getAvatarSrc(avatar) {
+      // 使用统一的avatar工具函数处理头像URL
+      const baseApi = process.env.VUE_APP_BASE_API || 'http://localhost:8080'
+      
+      if (!avatar) {
+        return baseApi + '/uploads/avatars/default-avatar.jpg'
+      }
+      
+      if (avatar.startsWith('http')) {
+        return avatar
+      } else if (avatar.startsWith('/')) {
+        return baseApi + avatar
+      } else {
+        return baseApi + '/uploads/avatars/' + avatar
+      }
+    },
     handleAvatarError(event) {
       // 头像加载失败时使用默认头像
-      event.target.src = '/uploads/avatars/default-avatar.png'
+      const baseApi = process.env.VUE_APP_BASE_API || 'http://localhost:8080'
+      event.target.src = baseApi + '/uploads/avatars/default-avatar.jpg'
     }
   }
 }

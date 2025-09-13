@@ -231,12 +231,24 @@ export default {
   methods: {
     async loadAccountInfo() {
       try {
-        const response = await getBalance()
-        this.balance = response.data.balance || 0
-        this.monthlyExpense = response.data.monthlyExpense || 0
-        this.monthlyRecharge = response.data.monthlyRecharge || 0
+        // 从Vuex获取当前用户ID
+        const userId = this.$store.state.user.user?.id
+        if (!userId) {
+          this.$message.error('无法获取用户信息')
+          return
+        }
+
+        const response = await getBalance(userId)
+        if (response.code === 200) {
+          this.balance = response.data || 0
+        } else {
+          this.$message.error('获取余额失败')
+          this.balance = 0
+        }
       } catch (error) {
         console.error('获取账户信息失败:', error)
+        this.$message.error('获取账户信息失败')
+        this.balance = 0
       }
     },
     async loadRechargeHistory() {

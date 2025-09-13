@@ -1,5 +1,8 @@
 package com.example.ttp_serve.service.impl;
 
+import com.example.ttp_serve.dto.EvaluationCreateDto;
+import com.example.ttp_serve.dto.EvaluationDto;
+import com.example.ttp_serve.dto.EvaluationUpdateDTO;
 import com.example.ttp_serve.entity.Course;
 import com.example.ttp_serve.entity.Evaluation;
 import com.example.ttp_serve.entity.User;
@@ -12,6 +15,7 @@ import com.example.ttp_serve.repository.CourseRepository;
 import com.example.ttp_serve.repository.EvaluationRepository;
 import com.example.ttp_serve.repository.UserRepository;
 import com.example.ttp_serve.service.EvaluationService;
+import com.example.ttp_serve.util.EvaluationConverter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -97,79 +101,159 @@ public class EvaluationServiceImpl implements EvaluationService {
         evaluationRepository.delete(evaluation);
     }
 
+    // 新的DTO方法实现
     @Override
-    public Evaluation getEvaluation(Long id) {
+    @Transactional
+    public EvaluationDto createEvaluation(EvaluationCreateDto evaluationCreateDto) {
+        Evaluation evaluation = EvaluationConverter.toEntity(evaluationCreateDto);
+        Evaluation createdEvaluation = createEvaluation(evaluation);
+        return EvaluationConverter.toDto(createdEvaluation);
+    }
+
+    @Override
+    @Transactional
+    public EvaluationDto updateEvaluation(Long id, EvaluationUpdateDTO evaluationUpdateDto) {
+        Evaluation existingEvaluation = evaluationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("评价ID '" + id + "' 不存在"));
+
+        // 只能更新评价内容和评分
+        if (evaluationUpdateDto.getContent() != null) {
+            existingEvaluation.setContent(evaluationUpdateDto.getContent());
+        }
+
+        if (evaluationUpdateDto.getRating() != null) {
+            existingEvaluation.setRating(evaluationUpdateDto.getRating());
+        }
+
+        Evaluation updatedEvaluation = evaluationRepository.save(existingEvaluation);
+        return EvaluationConverter.toDto(updatedEvaluation);
+    }
+
+    @Override
+    public EvaluationDto getEvaluation(Long id) {
+        Evaluation evaluation = getEvaluationEntity(id);
+        return EvaluationConverter.toDto(evaluation);
+    }
+
+    @Override
+    public List<EvaluationDto> getEvaluationsByCourse(Long courseId) {
+        List<Evaluation> evaluations = getEvaluationsEntityByCourse(courseId);
+        return EvaluationConverter.toDtoList(evaluations);
+    }
+
+    @Override
+    public List<EvaluationDto> getEvaluationsByFromUser(Long fromUserId) {
+        List<Evaluation> evaluations = getEvaluationsEntityByFromUser(fromUserId);
+        return EvaluationConverter.toDtoList(evaluations);
+    }
+
+    @Override
+    public List<EvaluationDto> getEvaluationsByToUser(Long toUserId) {
+        List<Evaluation> evaluations = getEvaluationsEntityByToUser(toUserId);
+        return EvaluationConverter.toDtoList(evaluations);
+    }
+
+    @Override
+    public List<EvaluationDto> getEvaluationsByType(EvaluationType type) {
+        List<Evaluation> evaluations = getEvaluationsEntityByType(type);
+        return EvaluationConverter.toDtoList(evaluations);
+    }
+
+    @Override
+    public List<EvaluationDto> getEvaluationsByFromUserAndType(Long fromUserId, EvaluationType type) {
+        List<Evaluation> evaluations = getEvaluationsEntityByFromUserAndType(fromUserId, type);
+        return EvaluationConverter.toDtoList(evaluations);
+    }
+
+    @Override
+    public List<EvaluationDto> getEvaluationsByToUserAndType(Long toUserId, EvaluationType type) {
+        List<Evaluation> evaluations = getEvaluationsEntityByToUserAndType(toUserId, type);
+        return EvaluationConverter.toDtoList(evaluations);
+    }
+
+    @Override
+    public List<EvaluationDto> getEvaluationsByCourseAndType(Long courseId, EvaluationType type) {
+        List<Evaluation> evaluations = getEvaluationsEntityByCourseAndType(courseId, type);
+        return EvaluationConverter.toDtoList(evaluations);
+    }
+
+    @Override
+    public Page<EvaluationDto> getEvaluations(Pageable pageable) {
+        Page<Evaluation> evaluations = getEvaluationsEntity(pageable);
+        return evaluations.map(EvaluationConverter::toDto);
+    }
+
+    // 以下方法保留用于兼容旧代码
+    @Override
+    @Deprecated
+    public Evaluation getEvaluationEntity(Long id) {
         return evaluationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("评价ID '" + id + "' 不存在"));
     }
 
     @Override
-    public List<Evaluation> getEvaluationsByCourse(Long courseId) {
-        // 检查课程是否存在
+    @Deprecated
+    public List<Evaluation> getEvaluationsEntityByCourse(Long courseId) {
         if (!courseRepository.existsById(courseId)) {
             throw new ResourceNotFoundException("课程ID '" + courseId + "' 不存在");
         }
-
         return evaluationRepository.findByCourseId(courseId);
     }
 
     @Override
-    public List<Evaluation> getEvaluationsByFromUser(Long fromUserId) {
-        // 检查用户是否存在
+    @Deprecated
+    public List<Evaluation> getEvaluationsEntityByFromUser(Long fromUserId) {
         if (!userRepository.existsById(fromUserId)) {
             throw new ResourceNotFoundException("用户ID '" + fromUserId + "' 不存在");
         }
-
         return evaluationRepository.findByFromUserId(fromUserId);
     }
 
     @Override
-    public List<Evaluation> getEvaluationsByToUser(Long toUserId) {
-        // 检查用户是否存在
+    @Deprecated
+    public List<Evaluation> getEvaluationsEntityByToUser(Long toUserId) {
         if (!userRepository.existsById(toUserId)) {
             throw new ResourceNotFoundException("用户ID '" + toUserId + "' 不存在");
         }
-
         return evaluationRepository.findByToUserId(toUserId);
     }
 
     @Override
-    public List<Evaluation> getEvaluationsByType(EvaluationType type) {
+    @Deprecated
+    public List<Evaluation> getEvaluationsEntityByType(EvaluationType type) {
         return evaluationRepository.findByType(type);
     }
 
     @Override
-    public List<Evaluation> getEvaluationsByFromUserAndType(Long fromUserId, EvaluationType type) {
-        // 检查用户是否存在
+    @Deprecated
+    public List<Evaluation> getEvaluationsEntityByFromUserAndType(Long fromUserId, EvaluationType type) {
         if (!userRepository.existsById(fromUserId)) {
             throw new ResourceNotFoundException("用户ID '" + fromUserId + "' 不存在");
         }
-
         return evaluationRepository.findByFromUserIdAndType(fromUserId, type);
     }
 
     @Override
-    public List<Evaluation> getEvaluationsByToUserAndType(Long toUserId, EvaluationType type) {
-        // 检查用户是否存在
+    @Deprecated
+    public List<Evaluation> getEvaluationsEntityByToUserAndType(Long toUserId, EvaluationType type) {
         if (!userRepository.existsById(toUserId)) {
             throw new ResourceNotFoundException("用户ID '" + toUserId + "' 不存在");
         }
-
         return evaluationRepository.findByToUserIdAndType(toUserId, type);
     }
 
     @Override
-    public List<Evaluation> getEvaluationsByCourseAndType(Long courseId, EvaluationType type) {
-        // 检查课程是否存在
+    @Deprecated
+    public List<Evaluation> getEvaluationsEntityByCourseAndType(Long courseId, EvaluationType type) {
         if (!courseRepository.existsById(courseId)) {
             throw new ResourceNotFoundException("课程ID '" + courseId + "' 不存在");
         }
-
         return evaluationRepository.findByCourseIdAndType(courseId, type);
     }
 
     @Override
-    public Page<Evaluation> getEvaluations(Pageable pageable) {
+    @Deprecated
+    public Page<Evaluation> getEvaluationsEntity(Pageable pageable) {
         return evaluationRepository.findAll(pageable);
     }
 

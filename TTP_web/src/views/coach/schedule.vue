@@ -269,9 +269,24 @@ export default {
       }
     },
     getSchedule(date, timeSlot) {
-      return this.schedule.find(item => 
-        item.date === date && item.timeSlot === timeSlot
-      )
+      const [slotStart, slotEnd] = timeSlot.split('-')
+      
+      return this.schedule.find(item => {
+        if (item.date !== date) return false
+        
+        // 处理连续时间段的课程
+        if (item.startTime && item.endTime) {
+          const courseStart = new Date(item.startTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+          const courseEnd = new Date(item.endTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+          
+          // 检查课程时间段与格子时间段重叠
+          return (courseStart <= slotStart && courseEnd > slotStart) ||
+                 (courseStart >= slotStart && courseStart < slotEnd)
+        }
+        
+        // 兼容旧的时间格式
+        return item.timeSlot === timeSlot
+      })
     },
     getCellClass(date, timeSlot) {
       const schedule = this.getSchedule(date, timeSlot)

@@ -91,7 +91,7 @@
 </template>
 
 <script>
-import { getTrainingRecords } from '@/api/student'
+import { getStudentCompletedCourses } from '@/api/student'
 import { getMyCoaches } from '@/api/student'
 import Pagination from '@/components/Pagination'
 
@@ -121,6 +121,9 @@ export default {
   methods: {
     async loadMyCoaches() {
       try {
+        const userId = this.$store.state.user.user?.id
+        if (!userId) return
+        
         const response = await getMyCoaches()
         this.myCoaches = response.data || []
       } catch (error) {
@@ -130,17 +133,55 @@ export default {
     async getList() {
       this.loading = true
       try {
-        const params = {
-          page: this.listQuery.page,
-          limit: this.listQuery.limit,
-          startDate: this.dateRange?.[0] || '',
-          endDate: this.dateRange?.[1] || '',
-          coachId: this.coachFilter || ''
+        const userId = this.$store.state.user.user?.id
+        if (!userId) {
+          this.$message.error('请先登录')
+          return
         }
         
-        const response = await getTrainingRecords(params)
-        this.trainingRecords = response.data.records || []
-        this.total = response.data.total || 0
+        const response = await getStudentCompletedCourses(userId)
+        
+        // 根据新的API响应格式处理数据
+        if (response.code === 200) {
+          let allRecords = (response.data || []).map(course => ({
+            id: course.id,
+            date: new Date(course.startTime).toLocaleDateString('zh-CN'),
+            time: `${new Date(course.startTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })} - ${new Date(course.endTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`,
+            coachName: course.coachName,
+            duration: course.duration * 60, // 转换为分钟
+            tableNumber: course.courtNumber,
+            fee: course.fee,
+            status: course.status,
+            startTime: course.startTime,
+            endTime: course.endTime,
+            studentEvaluation: '', // 预留字段，后续可添加评价功能
+            coachEvaluation: '' // 预留字段，后续可添加教练评价
+          }))
+          
+          // 本地筛选逻辑
+          if (this.dateRange && this.dateRange.length === 2) {
+            const startDate = new Date(this.dateRange[0])
+            const endDate = new Date(this.dateRange[1])
+            endDate.setHours(23, 59, 59, 999)
+            
+            allRecords = allRecords.filter(record => {
+              const recordDate = new Date(record.startTime)
+              return recordDate >= startDate && recordDate <= endDate
+            })
+          }
+          
+          if (this.coachFilter) {
+            allRecords = allRecords.filter(record => 
+              record.coachName === this.myCoaches.find(coach => coach.id === this.coachFilter)?.realName
+            )
+          }
+          
+          this.trainingRecords = allRecords
+          this.total = this.trainingRecords.length
+        } else {
+          this.trainingRecords = []
+          this.total = 0
+        }
       } catch (error) {
         console.error('获取训练记录失败:', error)
         this.$message.error('获取训练记录失败')
@@ -149,6 +190,7 @@ export default {
       }
     },
     handleFilter() {
+      // 由于新API不支持分页和筛选，这里只做本地筛选
       this.listQuery.page = 1
       this.getList()
     },

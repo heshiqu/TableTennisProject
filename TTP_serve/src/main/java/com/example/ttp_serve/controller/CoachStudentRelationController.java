@@ -111,10 +111,9 @@ public class CoachStudentRelationController {
     })
     public ResponseEntity<MyApiResponse<CoachStudentRelationDTO>> rejectRelation(
             @Parameter(description = "关系申请ID", required = true) @PathVariable Long relationId,
-            @Parameter(description = "教练ID", required = true) @RequestParam Long coachId,
-            @Parameter(description = "拒绝原因") @RequestParam(required = false) String reason) {
+            @Parameter(description = "教练ID", required = true) @RequestParam Long coachId) {
         try {
-            CoachStudentRelation relation = coachStudentService.rejectRelation(relationId, coachId, reason);
+            CoachStudentRelation relation = coachStudentService.rejectRelation(relationId, coachId);
             return ResponseEntity.ok(MyApiResponse.success("拒绝成功", convertToDTO(relation)));
         } catch (Exception e) {
             return ResponseEntity.badRequest()

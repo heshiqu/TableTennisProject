@@ -69,6 +69,30 @@ export function getCoachStudents(coachId) {
   })
 }
 
+// 获取教练学员数量
+export function getCoachStudentCount(coachId) {
+  return request({
+    url: `/api/coach-student-relations/coach/${coachId}/students/count`,
+    method: 'get'
+  })
+}
+
+// 获取已批准学员列表
+export function getCoachApprovedStudents(coachId) {
+  return request({
+    url: `/api/coach-student-relations/coach/${coachId}/status/APPROVED`,
+    method: 'get'
+  })
+}
+
+// 获取用户详细信息
+export function getUserDetail(userId) {
+  return request({
+    url: `/api/users/${userId}`,
+    method: 'get'
+  })
+}
+
 // 获取教练总数 - 使用原生axios绕过拦截器，直接返回数字
 export function getTotalCoachCount() {
   // 使用原生axios避免request.js的响应包装
@@ -86,5 +110,60 @@ export function getCoachCountByCampus(campusId) {
   return request({
     url: `/api/coaches/count/campus/${campusId}`,
     method: 'get'
+  })
+}
+
+// 获取教练个人信息
+export function getCoachInfo(coachId) {
+  return request({
+    url: `/api/coaches/${coachId}`,
+    method: 'get'
+  })
+}
+
+// 更新教练个人信息
+export function updateCoachInfo(coachId, data) {
+  return request({
+    url: `/api/coaches/${coachId}`,
+    method: 'put',
+    data
+  })
+}
+
+// 教练修改密码
+export function updatePassword(coachId, currentPassword, newPassword) {
+  return request({
+    url: `/api/coaches/${coachId}/password`,
+    method: 'put',
+    data: {
+      currentPassword,
+      newPassword
+    }
+  })
+}
+
+// 获取学生申请列表
+export function getStudentApplications(coachId) {
+  return request({
+    url: `/api/coach-student-relations/coach/${coachId}/status/PENDING`,
+    method: 'get'
+  })
+}
+
+// 同意学生申请
+export function approveStudentApplication(relationId, coachId) {
+  return request({
+    url: `/api/coach-student-relations/${relationId}/approve`,
+    method: 'post',
+    params: { coachId }
+  })
+}
+
+// 拒绝学生申请
+export function rejectStudentApplication(relationId, coachId) {
+  return request({
+    url: `/api/coach-student-relations/${relationId}/reject`,
+    method: 'post',
+    params: { coachId }
   })
 }

@@ -1,7 +1,9 @@
 package com.example.ttp_serve.controller;
 
 import com.example.ttp_serve.dto.MyApiResponse;
-import com.example.ttp_serve.entity.Evaluation;
+import com.example.ttp_serve.dto.EvaluationCreateDto;
+import com.example.ttp_serve.dto.EvaluationDto;
+import com.example.ttp_serve.dto.EvaluationUpdateDTO;
 import com.example.ttp_serve.enums.EvaluationType;
 import com.example.ttp_serve.service.EvaluationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,7 +35,7 @@ public class EvaluationController {
     /**
      * 创建评价
      *
-     * @param evaluation 评价信息
+     * @param evaluationCreateDto 评价信息
      * @return 创建的评价对象
      *
      * @apiNote 创建一条评价记录，可以是学员对教练的评价或教练对学员的评价
@@ -48,11 +50,11 @@ public class EvaluationController {
             @ApiResponse(responseCode = "404", description = "课程或用户不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<MyApiResponse<Evaluation>> createEvaluation(
+    public ResponseEntity<MyApiResponse<EvaluationDto>> createEvaluation(
             @Parameter(description = "评价信息", required = true)
-            @Valid @RequestBody Evaluation evaluation) {
+            @Valid @RequestBody EvaluationCreateDto evaluationCreateDto) {
         try {
-            Evaluation createdEvaluation = evaluationService.createEvaluation(evaluation);
+            EvaluationDto createdEvaluation = evaluationService.createEvaluation(evaluationCreateDto);
             return ResponseEntity.ok(MyApiResponse.success("评价创建成功", createdEvaluation));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -64,7 +66,7 @@ public class EvaluationController {
      * 更新评价
      *
      * @param id 评价ID
-     * @param evaluation 评价信息
+     * @param evaluationUpdateDto 评价信息
      * @return 更新后的评价对象
      *
      * @apiNote 更新评价内容和评分
@@ -78,12 +80,12 @@ public class EvaluationController {
             @ApiResponse(responseCode = "404", description = "评价不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<MyApiResponse<Evaluation>> updateEvaluation(
+    public ResponseEntity<MyApiResponse<EvaluationDto>> updateEvaluation(
             @Parameter(description = "评价ID", required = true) @PathVariable Long id,
-            @Parameter(description = "评价信息", required = true) @Valid @RequestBody Evaluation evaluation) {
+            @Parameter(description = "评价信息", required = true) @Valid @RequestBody EvaluationUpdateDTO evaluationUpdateDto) {
 
         try {
-            Evaluation updatedEvaluation = evaluationService.updateEvaluation(id, evaluation);
+            EvaluationDto updatedEvaluation = evaluationService.updateEvaluation(id, evaluationUpdateDto);
             return ResponseEntity.ok(MyApiResponse.success("评价更新成功", updatedEvaluation));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -134,10 +136,10 @@ public class EvaluationController {
             @ApiResponse(responseCode = "404", description = "评价不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<MyApiResponse<Evaluation>> getEvaluation(
+    public ResponseEntity<MyApiResponse<EvaluationDto>> getEvaluation(
             @Parameter(description = "评价ID", required = true) @PathVariable Long id) {
         try {
-            Evaluation evaluation = evaluationService.getEvaluation(id);
+            EvaluationDto evaluation = evaluationService.getEvaluation(id);
             return ResponseEntity.ok(MyApiResponse.success("获取成功", evaluation));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -161,10 +163,10 @@ public class EvaluationController {
             @ApiResponse(responseCode = "404", description = "课程不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<MyApiResponse<List<Evaluation>>> getEvaluationsByCourse(
+    public ResponseEntity<MyApiResponse<List<EvaluationDto>>> getEvaluationsByCourse(
             @Parameter(description = "课程ID", required = true) @PathVariable Long courseId) {
         try {
-            List<Evaluation> evaluations = evaluationService.getEvaluationsByCourse(courseId);
+            List<EvaluationDto> evaluations = evaluationService.getEvaluationsByCourse(courseId);
             return ResponseEntity.ok(MyApiResponse.success("获取成功", evaluations));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -187,10 +189,10 @@ public class EvaluationController {
             @ApiResponse(responseCode = "404", description = "用户不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<MyApiResponse<List<Evaluation>>> getEvaluationsByFromUser(
+    public ResponseEntity<MyApiResponse<List<EvaluationDto>>> getEvaluationsByFromUser(
             @Parameter(description = "评价者ID", required = true) @PathVariable Long fromUserId) {
         try {
-            List<Evaluation> evaluations = evaluationService.getEvaluationsByFromUser(fromUserId);
+            List<EvaluationDto> evaluations = evaluationService.getEvaluationsByFromUser(fromUserId);
             return ResponseEntity.ok(MyApiResponse.success("获取成功", evaluations));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -213,10 +215,10 @@ public class EvaluationController {
             @ApiResponse(responseCode = "404", description = "用户不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<MyApiResponse<List<Evaluation>>> getEvaluationsByToUser(
+    public ResponseEntity<MyApiResponse<List<EvaluationDto>>> getEvaluationsByToUser(
             @Parameter(description = "被评价者ID", required = true) @PathVariable Long toUserId) {
         try {
-            List<Evaluation> evaluations = evaluationService.getEvaluationsByToUser(toUserId);
+            List<EvaluationDto> evaluations = evaluationService.getEvaluationsByToUser(toUserId);
             return ResponseEntity.ok(MyApiResponse.success("获取成功", evaluations));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -225,24 +227,23 @@ public class EvaluationController {
     }
 
     /**
-     * 根据类型获取评价
+     * 根据评价类型获取评价
      *
      * @param type 评价类型
-     * @return 特定类型的评价列表
+     * @return 指定类型的评价列表
      *
-     * @apiNote 获取系统中所有特定类型的评价
-     *          类型包括：学员对教练、教练对学员
+     * @apiNote 获取指定类型的所有评价
      */
     @GetMapping("/type/{type}")
-    @Operation(summary = "根据类型获取评价", description = "获取系统中所有特定类型的评价，类型包括：学员对教练、教练对学员")
+    @Operation(summary = "根据评价类型获取评价", description = "获取指定类型的所有评价")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "获取成功"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<MyApiResponse<List<Evaluation>>> getEvaluationsByType(
+    public ResponseEntity<MyApiResponse<List<EvaluationDto>>> getEvaluationsByType(
             @Parameter(description = "评价类型", required = true) @PathVariable EvaluationType type) {
         try {
-            List<Evaluation> evaluations = evaluationService.getEvaluationsByType(type);
+            List<EvaluationDto> evaluations = evaluationService.getEvaluationsByType(type);
             return ResponseEntity.ok(MyApiResponse.success("获取成功", evaluations));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -251,27 +252,26 @@ public class EvaluationController {
     }
 
     /**
-     * 根据评价者和类型获取评价
+     * 根据评价者ID和评价类型获取评价
      *
      * @param fromUserId 评价者ID
      * @param type 评价类型
-     * @return 评价者创建的特定类型的评价列表
+     * @return 指定评价者创建的指定类型的评价列表
      *
-     * @apiNote 获取指定用户创建的特定类型的评价
+     * @apiNote 获取指定用户创建的指定类型的评价
      */
     @GetMapping("/from-user/{fromUserId}/type/{type}")
-    @Operation(summary = "根据评价者和类型获取评价", description = "获取指定用户创建的特定类型的评价")
+    @Operation(summary = "根据评价者ID和评价类型获取评价", description = "获取指定用户创建的指定类型的评价")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "获取成功"),
             @ApiResponse(responseCode = "404", description = "用户不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<MyApiResponse<List<Evaluation>>> getEvaluationsByFromUserAndType(
+    public ResponseEntity<MyApiResponse<List<EvaluationDto>>> getEvaluationsByFromUserAndType(
             @Parameter(description = "评价者ID", required = true) @PathVariable Long fromUserId,
             @Parameter(description = "评价类型", required = true) @PathVariable EvaluationType type) {
-
         try {
-            List<Evaluation> evaluations = evaluationService.getEvaluationsByFromUserAndType(fromUserId, type);
+            List<EvaluationDto> evaluations = evaluationService.getEvaluationsByFromUserAndType(fromUserId, type);
             return ResponseEntity.ok(MyApiResponse.success("获取成功", evaluations));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -280,27 +280,26 @@ public class EvaluationController {
     }
 
     /**
-     * 根据被评价者和类型获取评价
+     * 根据被评价者ID和评价类型获取评价
      *
      * @param toUserId 被评价者ID
      * @param type 评价类型
-     * @return 被评价者收到的特定类型的评价列表
+     * @return 指定被评价者收到的指定类型的评价列表
      *
-     * @apiNote 获取指定用户收到的特定类型的评价
+     * @apiNote 获取指定用户收到的指定类型的评价
      */
     @GetMapping("/to-user/{toUserId}/type/{type}")
-    @Operation(summary = "根据被评价者和类型获取评价", description = "获取指定用户收到的特定类型的评价")
+    @Operation(summary = "根据被评价者ID和评价类型获取评价", description = "获取指定用户收到的指定类型的评价")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "获取成功"),
             @ApiResponse(responseCode = "404", description = "用户不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<MyApiResponse<List<Evaluation>>> getEvaluationsByToUserAndType(
+    public ResponseEntity<MyApiResponse<List<EvaluationDto>>> getEvaluationsByToUserAndType(
             @Parameter(description = "被评价者ID", required = true) @PathVariable Long toUserId,
             @Parameter(description = "评价类型", required = true) @PathVariable EvaluationType type) {
-
         try {
-            List<Evaluation> evaluations = evaluationService.getEvaluationsByToUserAndType(toUserId, type);
+            List<EvaluationDto> evaluations = evaluationService.getEvaluationsByToUserAndType(toUserId, type);
             return ResponseEntity.ok(MyApiResponse.success("获取成功", evaluations));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -309,27 +308,26 @@ public class EvaluationController {
     }
 
     /**
-     * 根据课程ID和类型获取评价
+     * 根据课程ID和评价类型获取评价
      *
      * @param courseId 课程ID
      * @param type 评价类型
-     * @return 课程的特定类型的评价列表
+     * @return 指定课程的指定类型的评价列表
      *
-     * @apiNote 获取指定课程的特定类型的评价
+     * @apiNote 获取指定课程的指定类型的评价
      */
     @GetMapping("/course/{courseId}/type/{type}")
-    @Operation(summary = "根据课程ID和类型获取评价", description = "获取指定课程的特定类型的评价")
+    @Operation(summary = "根据课程ID和评价类型获取评价", description = "获取指定课程的指定类型的评价")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "获取成功"),
             @ApiResponse(responseCode = "404", description = "课程不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<MyApiResponse<List<Evaluation>>> getEvaluationsByCourseAndType(
+    public ResponseEntity<MyApiResponse<List<EvaluationDto>>> getEvaluationsByCourseAndType(
             @Parameter(description = "课程ID", required = true) @PathVariable Long courseId,
             @Parameter(description = "评价类型", required = true) @PathVariable EvaluationType type) {
-
         try {
-            List<Evaluation> evaluations = evaluationService.getEvaluationsByCourseAndType(courseId, type);
+            List<EvaluationDto> evaluations = evaluationService.getEvaluationsByCourseAndType(courseId, type);
             return ResponseEntity.ok(MyApiResponse.success("获取成功", evaluations));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -338,23 +336,22 @@ public class EvaluationController {
     }
 
     /**
-     * 分页获取评价
+     * 获取所有评价（分页）
      *
      * @param pageable 分页参数
-     * @return 分页的评价列表
+     * @return 评价分页列表
      *
-     * @apiNote 获取分页的评价列表，支持排序和分页参数
+     * @apiNote 获取所有评价的分页列表
      */
-    @GetMapping("/page")
-    @Operation(summary = "分页获取评价", description = "获取分页的评价列表，支持排序和分页参数")
+    @GetMapping
+    @Operation(summary = "获取所有评价", description = "获取所有评价的分页列表")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "获取成功"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<MyApiResponse<Page<Evaluation>>> getEvaluations(
-            @Parameter(description = "分页参数") Pageable pageable) {
+    public ResponseEntity<MyApiResponse<Page<EvaluationDto>>> getEvaluations(Pageable pageable) {
         try {
-            Page<Evaluation> evaluations = evaluationService.getEvaluations(pageable);
+            Page<EvaluationDto> evaluations = evaluationService.getEvaluations(pageable);
             return ResponseEntity.ok(MyApiResponse.success("获取成功", evaluations));
         } catch (Exception e) {
             return ResponseEntity.badRequest()

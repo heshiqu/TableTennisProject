@@ -14,7 +14,7 @@ public interface CoachStudentService {
     CoachStudentRelation approveRelation(Long relationId, Long coachId);
 
     // 拒绝关系申请
-    CoachStudentRelation rejectRelation(Long relationId, Long coachId, String reason);
+    CoachStudentRelation rejectRelation(Long relationId, Long coachId);
 
     // 获取关系详情
     CoachStudentRelation getRelation(Long relationId);

@@ -125,7 +125,7 @@ export const constantRoutes = [
     meta: { title: '我的课表', icon: 'calendar', roles: ['STUDENT'] },
     children: [{
       path: '/student-schedule',
-      component: () => import('@/views/student/schedule'),
+      component: () => import('@/views/course/StudentSchedule'),
       meta: { title: '我的课表', icon: 'calendar' }
     }]
   },
@@ -214,7 +214,7 @@ export const constantRoutes = [
     meta: { title: '课表管理', icon: 'calendar', roles: ['COACH'] },
     children: [{
       path: '/coach-schedule',
-      component: () => import('@/views/coach/schedule'),
+      component: () => import('@/views/course/CoachSchedule'),
       meta: { title: '课表管理', icon: 'calendar' }
     }]
   },

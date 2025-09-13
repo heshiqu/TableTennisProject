@@ -95,6 +95,14 @@ export function getStudentCoursesByDateRange(studentId, startDate, endDate) {
   })
 }
 
+// 获取学员已完成的训练记录
+export function getStudentCompletedCourses(studentId) {
+  return request({
+    url: `/api/courses/student/${studentId}/completed`,
+    method: 'get'
+  })
+}
+
 // 获取用户详细信息
 export function getUserInfo(userId) {
   return request({
@@ -118,4 +126,51 @@ export function updatePassword(userId, oldPassword, newPassword) {
     url: `/api/users/${userId}/password?oldPassword=${encodeURIComponent(oldPassword)}&newPassword=${encodeURIComponent(newPassword)}`,
     method: 'patch'
   })
+}
+
+// 获取学生所在校区的教练列表
+export function getCampusCoachesForStudent(campusId) {
+  return request({
+    url: `/api/coaches/campus/${campusId}`,
+    method: 'get'
+  })
+}
+
+// 获取当前学生所在校区的教练列表
+export function getCurrentStudentCampusCoaches() {
+  return request({
+    url: '/api/coaches/campus/current',
+    method: 'get'
+  })
+}
+
+// 获取用户交易记录
+export function getUserPayments(userId, params) {
+  return request({
+    url: `/api/payments/user/${userId}`,
+    method: 'get',
+    params
+  })
+}
+
+// 获取学生已批准的教练关系
+export function getStudentApprovedCoaches(studentId) {
+  return request({
+    url: `/api/coach-student-relations/student/${studentId}/status/APPROVED`,
+    method: 'get'
+  })
+}
+
+// 获取教练详细信息
+export function getCoachDetail(coachId) {
+  return request({
+    url: `/api/coaches/${coachId}`,
+    method: 'get'
+  })
+}
+
+// 获取我的教练（已批准状态）
+export async function getMyApprovedCoaches() {
+  // 这个方法将在组件中调用，通过Vuex获取用户ID
+  throw new Error('请在组件中使用getStudentApprovedCoaches和getCoachDetail组合调用')
 }

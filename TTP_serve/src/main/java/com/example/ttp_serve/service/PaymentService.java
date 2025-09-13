@@ -29,20 +29,38 @@ public interface PaymentService {
     // 获取用户的支付记录
     List<Payment> getUserPayments(Long userId);
 
+    // 分页获取用户的支付记录
+    Page<Payment> getUserPayments(Long userId, Pageable pageable);
+
     // 获取特定状态的支付记录
     List<Payment> getPaymentsByStatus(PaymentStatus status);
+    
+    // 分页获取特定状态的支付记录
+    Page<Payment> getPaymentsByStatus(PaymentStatus status, Pageable pageable);
 
     // 获取特定类型的支付记录
     List<Payment> getPaymentsByType(PaymentType type);
+    
+    // 分页获取特定类型的支付记录
+    Page<Payment> getPaymentsByType(PaymentType type, Pageable pageable);
 
     // 获取特定方式的支付记录
     List<Payment> getPaymentsByMethod(PaymentMethod method);
+    
+    // 分页获取特定方式的支付记录
+    Page<Payment> getPaymentsByMethod(PaymentMethod method, Pageable pageable);
 
     // 获取日期范围内的支付记录
     List<Payment> getPaymentsByDateRange(LocalDateTime start, LocalDateTime end);
+    
+    // 分页获取日期范围内的支付记录
+    Page<Payment> getPaymentsByDateRange(LocalDateTime start, LocalDateTime end, Pageable pageable);
 
     // 获取用户在日期范围内的支付记录
     List<Payment> getUserPaymentsByDateRange(Long userId, LocalDateTime start, LocalDateTime end);
+    
+    // 分页获取用户在日期范围内的支付记录
+    Page<Payment> getUserPaymentsByDateRange(Long userId, LocalDateTime start, LocalDateTime end, Pageable pageable);
 
     // 分页获取支付记录
     Page<Payment> getPayments(Pageable pageable);

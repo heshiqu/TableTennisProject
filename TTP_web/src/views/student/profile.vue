@@ -5,12 +5,13 @@
         <el-card class="profile-card">
           <div class="avatar-section">
             <el-upload
-              class="avatar-uploader"
-              action="/api/upload/avatar"
-              :show-file-list="false"
-              :on-success="handleAvatarSuccess"
-              :before-upload="beforeAvatarUpload"
-              :headers="uploadHeaders">
+        class="avatar-uploader"
+        :action="uploadAction"
+        :show-file-list="false"
+        :on-success="handleAvatarSuccess"
+        :before-upload="beforeAvatarUpload"
+        name="file"
+        :headers="uploadHeaders">
               <img v-if="displayUser.avatar" :src="displayUser.avatar" class="avatar">
               <i v-else class="el-icon-plus avatar-uploader-icon"></i>
             </el-upload>
@@ -258,6 +259,11 @@ export default {
       }
     }
   },
+  computed: {
+    uploadAction() {
+      return (process.env.VUE_APP_BASE_API || 'http://localhost:8080') + '/api/upload/avatar'
+    }
+  },
   created() {
     this.loadUserInfo()
     this.loadCampusList()
@@ -293,8 +299,20 @@ export default {
         
         // 展示数据
         this.displayUser = { ...userInfo }
+        // 确保头像URL是完整的API地址格式
+        if (this.displayUser.avatar) {
+          const baseApi = process.env.VUE_APP_BASE_API || 'http://localhost:8080'
+          if (typeof this.displayUser.avatar === 'string') {
+            if (!this.displayUser.avatar.startsWith('http')) {
+              // 如果是相对路径，添加API前缀
+              this.displayUser.avatar = this.displayUser.avatar.startsWith('/') 
+                ? baseApi + this.displayUser.avatar 
+                : baseApi + '/uploads/avatars/' + this.displayUser.avatar
+            }
+          }
+        }
         // 编辑表单数据（初始化为展示数据的副本）
-        this.userForm = { ...userInfo }
+        this.userForm = { ...this.displayUser }
         
         console.log('获取用户信息成功:', userData)
       } catch (error) {
@@ -330,7 +348,8 @@ export default {
             gender: this.userForm.gender,
             age: this.userForm.age,
             phone: this.userForm.phone,
-            email: this.userForm.email
+            email: this.userForm.email,
+            avatar: this.userForm.avatar || '/uploads/avatars/default-avatar.jpg'
           }
           
           console.log('更新用户信息:', { userId, updateData })
@@ -446,9 +465,26 @@ export default {
     },
     handleAvatarSuccess(res, file) {
       if (res.code === 200) {
-        this.displayUser.avatar = res.data
-        this.userForm.avatar = res.data
-        this.$message.success('头像上传成功')
+        let avatarUrl = res.data
+        
+        if (!avatarUrl || avatarUrl === '' || avatarUrl === 'null' || avatarUrl === 'undefined') {
+          avatarUrl = '/uploads/avatars/default-avatar.jpg'
+        } else if (typeof avatarUrl === 'string') {
+          if (!avatarUrl.startsWith('/')) {
+            avatarUrl = '/uploads/avatars/' + avatarUrl
+          }
+        } else {
+          avatarUrl = '/uploads/avatars/default-avatar.jpg'
+        }
+        
+        // 存储相对路径用于提交
+        this.userForm.avatar = avatarUrl
+        
+        // 显示完整URL用于预览
+        const baseApi = process.env.VUE_APP_BASE_API || 'http://localhost:8080'
+        this.displayUser.avatar = baseApi + avatarUrl
+        
+        this.$message.success('头像上传成功，请点击保存修改按钮保存更改')
       } else {
         this.$message.error('头像上传失败：' + res.message)
       }

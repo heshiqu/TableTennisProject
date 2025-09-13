@@ -17,24 +17,19 @@
       <div v-if="activeStep === 0">
         <el-card>
           <div slot="header">
-            <span>我的教练</span>
+            <span>选择我的教练</span>
           </div>
-          <el-row :gutter="20">
-            <el-col :span="8" v-for="coach in myCoaches" :key="coach.id">
-              <el-card :body-style="{ padding: '15px' }" 
-                       :class="{ 'selected-card': selectedCoach && selectedCoach.id === coach.id }"
-                       @click.native="selectCoach(coach)">
-                <div class="coach-item">
-                  <el-avatar :size="60" :src="coach.avatar || defaultAvatar"></el-avatar>
-                  <div class="coach-info">
-                    <h4>{{ coach.realName }}</h4>
-                    <p>{{ coach.level | levelFilter }}</p>
-                    <p>{{ coach.price }}元/小时</p>
-                  </div>
-                </div>
-              </el-card>
-            </el-col>
-          </el-row>
+          <el-radio-group v-model="selectedCoach" class="coach-radio-group">
+            <el-radio 
+              v-for="coach in myCoaches" 
+              :key="coach.id" 
+              :label="coach"
+              class="coach-radio-item">
+              <div class="coach-name-display">
+                {{ coach.realName || coach.username }}
+              </div>
+            </el-radio>
+          </el-radio-group>
           <el-empty v-if="myCoaches.length === 0" description="暂无教练，请先选择教练"></el-empty>
         </el-card>
         <div style="text-align: center; margin-top: 20px;">
@@ -46,42 +41,17 @@
       <div v-if="activeStep === 1">
         <el-card>
           <div slot="header">
-            <span>选择日期</span>
+            <span>选择时间</span>
           </div>
-          <el-calendar v-model="selectedDate" :range="calendarRange">
-            <template slot="dateCell" slot-scope="{date, data}">
-              <div :class="{ 'available-date': isDateAvailable(date), 'unavailable-date': !isDateAvailable(date) }">
-                <span>{{ data.day.split('-').slice(2).join('-') }}</span>
-                <div v-if="getAvailableSlots(date).length > 0" class="slot-count">
-                  {{ getAvailableSlots(date).length }}个时段
-                </div>
-              </div>
-            </template>
-          </el-calendar>
-        </el-card>
-
-        <el-card style="margin-top: 20px;">
-          <div slot="header">
-            <span>选择时间段</span>
-            <span style="float: right; color: #999;">{{ selectedDate | formatDate }}</span>
-          </div>
-          <el-row :gutter="10">
-            <el-col :span="6" v-for="slot in availableSlots" :key="slot.id">
-              <el-button 
-                :type="selectedSlot && selectedSlot.id === slot.id ? 'primary' : 'default'"
-                @click="selectSlot(slot)"
-                :disabled="!slot.available"
-                class="time-slot-btn">
-                {{ slot.startTime }} - {{ slot.endTime }}
-              </el-button>
-            </el-col>
-          </el-row>
-          <el-empty v-if="availableSlots.length === 0" description="该日期无可选时段"></el-empty>
+          <interactive-coach-schedule
+            :coach-id="selectedCoach.id"
+            :coach-name="selectedCoach.realName"
+            @time-selected="handleTimeSelected" />
         </el-card>
 
         <div style="text-align: center; margin-top: 20px;">
           <el-button @click="prevStep">上一步</el-button>
-          <el-button type="primary" @click="nextStep" :disabled="!selectedSlot">下一步</el-button>
+          <el-button type="primary" @click="nextStep" :disabled="!selectedTimeRange">下一步</el-button>
         </div>
       </div>
 
@@ -91,22 +61,26 @@
           <div slot="header">
             <span>选择球台</span>
             <span style="float: right; color: #999;">
-              {{ selectedDate | formatDate }} {{ selectedSlot.startTime }} - {{ selectedSlot.endTime }}
+              {{ selectedTimeRange.startDate }} {{ selectedTimeRange.startTime }} - {{ selectedTimeRange.endTime }}
             </span>
           </div>
           <el-row :gutter="20">
             <el-col :span="6" v-for="table in availableTables" :key="table.id">
               <el-card 
                 :body-style="{ padding: '15px', textAlign: 'center' }"
-                :class="{ 'selected-card': selectedTable && selectedTable.id === table.id }"
+                :class="[{ 'selected-card': selectedTable && selectedTable.id === table.id }, 
+                         { 'disabled-card': table.status !== 'AVAILABLE' }]"
                 @click.native="selectTable(table)">
                 <div class="table-item">
-                  <div class="table-number">{{ table.name }}</div>
-                  <div class="table-status" :class="table.status">{{ table.status | statusFilter }}</div>
+                  <div class="table-number">球台编号：{{ table.courtNumber || table.name }}</div>
+                  <div class="table-status" :class="table.status">
+                    <span :class="getStatusClass(table.status)">{{ table.status | statusFilter }}</span>
+                  </div>
                 </div>
               </el-card>
             </el-col>
           </el-row>
+          <el-empty v-if="availableTables.length === 0" description="暂无可用的球台"></el-empty>
           <div style="text-align: center; margin: 20px 0;">
             <el-button type="info" @click="autoAssignTable">系统自动分配</el-button>
           </div>
@@ -124,14 +98,36 @@
           <div slot="header">
             <span>确认预约信息</span>
           </div>
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="教练">{{ selectedCoach.realName }}</el-descriptions-item>
-            <el-descriptions-item label="等级">{{ selectedCoach.level | levelFilter }}</el-descriptions-item>
-            <el-descriptions-item label="日期">{{ selectedDate | formatDate }}</el-descriptions-item>
-            <el-descriptions-item label="时间">{{ selectedSlot.startTime }} - {{ selectedSlot.endTime }}</el-descriptions-item>
-            <el-descriptions-item label="球台">{{ selectedTable.name }}</el-descriptions-item>
-            <el-descriptions-item label="费用">{{ calculateFee() }}元</el-descriptions-item>
-          </el-descriptions>
+          <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+              <h3 style="margin: 0; color: #333;">预约确认</h3>
+              <div style="font-size: 24px; font-weight: bold; color: #ff6b6b;">
+                ¥{{ calculateFee() }}
+              </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+              <div style="background: white; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="font-size: 12px; color: #666; margin-bottom: 5px;">教练名称</div>
+                <div style="font-size: 16px; font-weight: 600; color: #333;">{{ selectedCoach.realName }}</div>
+              </div>
+              
+              <div style="background: white; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="font-size: 12px; color: #666; margin-bottom: 5px;">球台编号</div>
+                <div style="font-size: 16px; font-weight: 600; color: #333;">{{ selectedTable.courtNumber || selectedTable.name }}</div>
+              </div>
+              
+              <div style="background: white; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="font-size: 12px; color: #666; margin-bottom: 5px;">课程日期</div>
+                <div style="font-size: 16px; font-weight: 600; color: #333;">{{ selectedTimeRange.startDate }}</div>
+              </div>
+              
+              <div style="background: white; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="font-size: 12px; color: #666; margin-bottom: 5px;">课程时段</div>
+                <div style="font-size: 16px; font-weight: 600; color: #333;">{{ selectedTimeRange.startTime }} - {{ selectedTimeRange.endTime }}</div>
+              </div>
+            </div>
+          </div>
           
           <el-alert
             title="预约说明"
@@ -152,10 +148,15 @@
 </template>
 
 <script>
-import { getMyCoaches } from '@/api/student'
+import { getStudentApprovedCoaches, getCoachDetail } from '@/api/student'
 import { getCoachSchedule, getAvailableTables, bookCourse } from '@/api/course'
+import request from '@/utils/request'
+import InteractiveCoachSchedule from './InteractiveCoachSchedule.vue'
 
 export default {
+  components: {
+    InteractiveCoachSchedule
+  },
   name: 'CourseBook',
   data() {
     return {
@@ -165,9 +166,10 @@ export default {
       selectedDate: new Date(),
       selectedSlot: null,
       selectedTable: null,
+      selectedTimeRange: null,
       availableSlots: [],
       availableTables: [],
-      defaultAvatar: '/uploads/avatars/default-avatar.png',
+      defaultAvatar: (process.env.VUE_APP_BASE_API || 'http://localhost:8080') + '/uploads/avatars/default-avatar.jpg',
       calendarRange: [new Date(), new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)]
     }
   },
@@ -183,7 +185,9 @@ export default {
     formatDate(date) {
       if (!date) return ''
       return new Date(date).toLocaleDateString('zh-CN')
-    },
+    }
+  },
+  filters: {
     statusFilter(status) {
       const statusMap = {
         'AVAILABLE': '可用',
@@ -197,16 +201,51 @@ export default {
     this.loadMyCoaches()
   },
   methods: {
-    async loadMyCoaches() {
+    // 通过校区ID获取球台数据
+    async getCourtsByCampus(campusId) {
       try {
-        const response = await getMyCoaches()
-        this.myCoaches = response.data || []
+        const response = await request({
+          url: `/api/courts/campus/${campusId}`,
+          method: 'get'
+        })
+        return response.data || []
       } catch (error) {
-        console.error('获取教练列表失败:', error)
+        console.error('获取球台数据失败:', error)
+        this.$message.error('获取球台数据失败')
+        return []
       }
     },
-    selectCoach(coach) {
-      this.selectedCoach = coach
+    
+    async loadMyCoaches() {
+      try {
+        const studentId = this.$store.state.user.user?.id
+        if (!studentId) {
+          this.$message.error('无法获取学生信息')
+          return
+        }
+        
+        // 获取已批准的教练关系
+        const response = await getStudentApprovedCoaches(studentId)
+        const coachRelations = response.data || []
+        
+        // 获取教练详细信息
+        const coachPromises = coachRelations.map(async relation => {
+          try {
+            const coachResponse = await getCoachDetail(relation.coachId)
+            return coachResponse.data
+          } catch (error) {
+            console.error(`获取教练 ${relation.coachId} 详情失败:`, error)
+            return null
+          }
+        })
+        
+        const coaches = await Promise.all(coachPromises)
+        this.myCoaches = coaches.filter(coach => coach !== null)
+        
+      } catch (error) {
+        console.error('获取教练列表失败:', error)
+        this.$message.error('获取教练列表失败')
+      }
     },
     async loadAvailableSlots() {
       if (!this.selectedCoach || !this.selectedDate) return
@@ -220,14 +259,26 @@ export default {
       }
     },
     async loadAvailableTables() {
-      if (!this.selectedSlot) return
+      if (!this.selectedTimeRange) return
       
       try {
-        const dateStr = this.formatDateForAPI(this.selectedDate)
-        const response = await getAvailableTables(dateStr, this.selectedSlot.startTime, this.selectedSlot.endTime)
-        this.availableTables = response.data || []
+        // 获取当前用户的校区ID
+        const campusId = this.$store.state.user.user?.campusId
+        if (!campusId) {
+          this.$message.error('无法获取用户校区信息')
+          return
+        }
+        
+        // 通过校区ID获取球台数据
+        const courts = await this.getCourtsByCampus(campusId)
+        
+        // 显示所有球台，但只允许选择AVAILABLE状态的
+        this.availableTables = courts || []
+        
+        console.log('获取到的球台数据:', this.availableTables)
       } catch (error) {
-        console.error('获取可用球台失败:', error)
+        console.error('获取球台数据失败:', error)
+        this.$message.error('获取球台数据失败')
       }
     },
     isDateAvailable(date) {
@@ -246,57 +297,167 @@ export default {
       this.loadAvailableTables()
     },
     selectTable(table) {
-      this.selectedTable = table
+      if (table.status === 'AVAILABLE') {
+        this.selectedTable = table
+      } else {
+        this.$message.warning(`球台 ${table.courtNumber || table.name} 当前${this.$options.filters.statusFilter(table.status)}，无法选择`)
+      }
     },
     autoAssignTable() {
       const availableTable = this.availableTables.find(table => table.status === 'AVAILABLE')
       if (availableTable) {
         this.selectedTable = availableTable
-        this.$message.success('已为您自动分配球台')
+        this.$message.success(`已为您自动分配球台: ${availableTable.courtNumber || availableTable.name}`)
       } else {
         this.$message.warning('暂无可用球台')
       }
     },
+    
+    getStatusClass(status) {
+      return {
+        'status-available': status === 'AVAILABLE',
+        'status-occupied': status === 'OCCUPIED',
+        'status-maintenance': status === 'MAINTENANCE'
+      }
+    },
     calculateFee() {
-      if (!this.selectedCoach || !this.selectedSlot) return 0
-      const duration = this.calculateDuration(this.selectedSlot.startTime, this.selectedSlot.endTime)
-      return this.selectedCoach.price * duration
+      console.log('教练数据:', this.selectedCoach)
+      console.log('时间数据:', this.selectedTimeRange)
+      
+      if (!this.selectedCoach || !this.selectedTimeRange || 
+          !this.selectedTimeRange.startTime || !this.selectedTimeRange.endTime) {
+        console.log('数据不完整，返回0')
+        return 0
+      }
+      
+      // 根据代码分析，教练价格字段应该是hourlyRate
+      const priceField = this.selectedCoach.hourlyRate || 100
+      
+      console.log('价格字段hourlyRate:', priceField)
+      
+      try {
+        const duration = this.calculateDuration(this.selectedTimeRange.startTime, this.selectedTimeRange.endTime)
+        const price = parseFloat(priceField) || 100
+        const total = Math.round(price * duration * 100) / 100
+        console.log('计算结果:', {duration, price, total})
+        return total
+      } catch (error) {
+        console.error('计算费用出错:', error)
+        return 100
+      }
     },
     calculateDuration(startTime, endTime) {
-      const start = new Date(`2000/01/01 ${startTime}`)
-      const end = new Date(`2000/01/01 ${endTime}`)
-      return (end - start) / (1000 * 60 * 60)
+      // 解析时间格式为小时和分钟
+      const [startHour, startMinute] = startTime.split(':').map(Number)
+      const [endHour, endMinute] = endTime.split(':').map(Number)
+      
+      // 计算总分钟数差
+      const startTotalMinutes = startHour * 60 + startMinute
+      const endTotalMinutes = endHour * 60 + endMinute
+      
+      // 计算小时数
+      const duration = (endTotalMinutes - startTotalMinutes) / 60
+      
+      return duration > 0 ? duration : 0
     },
     formatDateForAPI(date) {
       return new Date(date).toISOString().split('T')[0]
     },
+    formatDateTime(dateTimeStr) {
+      const date = new Date(dateTimeStr)
+      return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    },
+    handleTimeSelected(timeRange) {
+      this.selectedTimeRange = timeRange
+      this.selectedTable = null
+      // 不在选择时间后立即加载球台，等到进入选择球台步骤时再加载
+    },
     nextStep() {
-      if (this.activeStep === 1) {
-        this.loadAvailableSlots()
-      }
       this.activeStep++
+      // 当进入选择球台步骤时加载球台数据
+      if (this.activeStep === 2) {
+        this.loadAvailableTables()
+      }
     },
     prevStep() {
       this.activeStep--
     },
     async confirmBooking() {
       try {
-        await this.$confirm('确认预约该课程吗？', '确认预约', {
+        await this.$confirm(
+          `确认预约 ${this.selectedDate.toLocaleDateString('zh-CN')} ${this.selectedTimeRange.startTime} - ${this.selectedTimeRange.endTime} 的课程吗？`, 
+          '确认预约', {
           confirmButtonText: '确定',
           cancelButtonText: '取消',
           type: 'warning'
         })
 
+        // 构建UTC时间字符串，直接使用用户选择的本地时间作为UTC时间
+        const startDate = new Date(this.selectedTimeRange.startDate)
+        const [startHour, startMinute] = this.selectedTimeRange.startTime.split(':').map(Number)
+        const [endHour, endMinute] = this.selectedTimeRange.endTime.split(':').map(Number)
+        
+        // 创建UTC时间的Date对象（将本地时间视为UTC时间）
+        const startDateTime = new Date(Date.UTC(
+          startDate.getFullYear(), 
+          startDate.getMonth(), 
+          startDate.getDate(), 
+          startHour, 
+          startMinute
+        )).toISOString()
+        const endDateTime = new Date(Date.UTC(
+          startDate.getFullYear(), 
+          startDate.getMonth(), 
+          startDate.getDate(), 
+          endHour, 
+          endMinute
+        )).toISOString()
+
         const bookingData = {
           coachId: this.selectedCoach.id,
-          date: this.formatDateForAPI(this.selectedDate),
-          startTime: this.selectedSlot.startTime,
-          endTime: this.selectedSlot.endTime,
-          tableId: this.selectedTable.id
+          studentId: this.$store.state.user.user?.id,
+          courtId: this.selectedTable.id,
+          startTime: startDateTime,
+          endTime: endDateTime
         }
 
-        await bookCourse(bookingData)
-        this.$message.success('预约成功，请等待教练确认')
+        // 使用新的API格式直接发送到 /api/courses
+        const response = await request({
+          url: '/api/courses',
+          method: 'post',
+          data: bookingData
+        })
+
+        if (response.code === 200) {
+          this.$message.success('课程预约成功！')
+          
+          // 显示详细的预约信息
+          const courseInfo = response.data
+          this.$notify({
+            title: '预约成功',
+            message: `
+              <div>
+                <p><strong>教练：</strong>${courseInfo.coachName}</p>
+                <p><strong>球台：</strong>${courseInfo.courtNumber}</p>
+                <p><strong>时间：</strong>${this.formatDateTime(courseInfo.startTime)} - ${this.formatDateTime(courseInfo.endTime)}</p>
+                <p><strong>费用：</strong>¥${courseInfo.fee}</p>
+                <p><strong>状态：</strong>等待教练确认</p>
+              </div>
+            `,
+            type: 'success',
+            dangerouslyUseHTMLString: true,
+            duration: 5000
+          })
+        } else {
+          throw new Error(response.message || '预约失败')
+        }
+
         this.resetBooking()
       } catch (error) {
         if (error !== 'cancel') {
@@ -310,19 +471,44 @@ export default {
       this.selectedDate = new Date()
       this.selectedSlot = null
       this.selectedTable = null
+      this.selectedTimeRange = null
     }
   },
-  watch: {
-    selectedDate() {
-      if (this.activeStep === 1) {
-        this.loadAvailableSlots()
-      }
-    }
-  }
+
 }
 </script>
 
 <style scoped>
+.coach-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.coach-radio-item {
+  display: block;
+  margin-right: 0;
+  padding: 10px;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.coach-radio-item:hover {
+  border-color: #409EFF;
+}
+
+.coach-radio-item.is-checked {
+  border-color: #409EFF;
+  background-color: #ecf5ff;
+}
+
+.coach-name-display {
+  font-size: 16px;
+  font-weight: 500;
+  color: #303133;
+}
+
 .selected-card {
   border: 2px solid #409EFF;
 }
@@ -392,5 +578,25 @@ export default {
 .table-status.MAINTENANCE {
   background-color: #E6A23C;
   color: white;
+}
+
+.status-available {
+  color: #67C23A;
+  font-weight: bold;
+}
+
+.status-occupied {
+  color: #F56C6C;
+  font-weight: bold;
+}
+
+.status-maintenance {
+  color: #E6A23C;
+  font-weight: bold;
+}
+
+.el-card[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>

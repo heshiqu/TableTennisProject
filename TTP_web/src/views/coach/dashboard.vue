@@ -125,7 +125,7 @@
 <script>
 import { mapGetters } from 'vuex'
 import CountTo from 'vue-count-to'
-import { getCoachStudents } from '@/api/coach'
+import { getCoachStudentCount } from '@/api/coach'
 import { getCoachCourses, getCancellationStats } from '@/api/course'
 import { getSystemMessages } from '@/api/system'
 
@@ -156,8 +156,11 @@ export default {
     async loadDashboardData() {
       try {
         // 获取学员数量
-        const studentsRes = await getCoachStudents()
-        this.studentCount = studentsRes.data.length || 0
+        const coachId = this.$store.state.user.user?.id
+        if (coachId) {
+          const countRes = await getCoachStudentCount(coachId)
+          this.studentCount = countRes.data || 0
+        }
 
         // 获取今日课程
         this.loadTodaySchedule()

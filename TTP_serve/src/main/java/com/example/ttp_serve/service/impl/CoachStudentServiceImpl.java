@@ -100,7 +100,7 @@ public class CoachStudentServiceImpl implements CoachStudentService {
 
     @Override
     @Transactional
-    public CoachStudentRelation rejectRelation(Long relationId, Long coachId, String reason) {
+    public CoachStudentRelation rejectRelation(Long relationId, Long coachId) {
         CoachStudentRelation relation = relationRepository.findById(relationId)
                 .orElseThrow(() -> new ResourceNotFoundException("关系申请ID '" + relationId + "' 不存在"));
 

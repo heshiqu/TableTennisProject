@@ -1,130 +1,128 @@
 <template>
   <div class="app-container">
-    <el-card>
-      <div slot="header" class="clearfix">
-        <span>账户管理</span>
-      </div>
-      
-      <el-row :gutter="20">
-        <el-col :span="12">
-          <el-card class="balance-card">
-            <div class="balance-info">
-              <div class="balance-label">账户余额</div>
+    <el-row :gutter="20">
+      <!-- 账户信息卡片 -->
+      <el-col :span="8">
+        <el-card>
+          <div slot="header">
+            <span>账户信息</span>
+          </div>
+          <div class="account-info">
+            <div class="balance-display">
+              <div class="balance-label">当前余额</div>
               <div class="balance-amount">¥{{ balance.toFixed(2) }}</div>
-              <el-button type="primary" @click="handleRecharge">立即充值</el-button>
             </div>
-          </el-card>
-        </el-col>
-        <el-col :span="12">
-          <el-card class="info-card">
-            <div class="info-item">
-              <span class="info-label">今日消费：</span>
-              <span class="info-value">¥{{ todayExpense.toFixed(2) }}</span>
+            <div class="account-stats">
+              <div class="stat-item">
+                <span class="stat-label">本月消费</span>
+                <span class="stat-value">¥{{ monthlyExpense.toFixed(2) }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">本月充值</span>
+                <span class="stat-value">¥{{ monthlyRecharge.toFixed(2) }}</span>
+              </div>
             </div>
-            <div class="info-item">
-              <span class="info-label">本月消费：</span>
-              <span class="info-value">¥{{ monthExpense.toFixed(2) }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">总消费：</span>
-              <span class="info-value">¥{{ totalExpense.toFixed(2) }}</span>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
+          </div>
+        </el-card>
 
-      <el-card style="margin-top: 20px;">
-        <div slot="header">
-          <span>交易记录</span>
-        </div>
-        
-        <div class="filter-container">
-          <el-date-picker
-            v-model="dateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            @change="handleFilter"
+        <!-- 快捷操作 -->
+        <el-card style="margin-top: 20px;">
+          <div slot="header">
+            <span>快捷操作</span>
+          </div>
+          <div class="quick-actions">
+            <el-button type="primary" style="width: 100%; margin-bottom: 10px;" @click="goToRecharge">
+              立即充值
+            </el-button>
+            <el-button style="width: 100%;" @click="goToCourseBook">
+              预约课程
+            </el-button>
+          </div>
+        </el-card>
+      </el-col>
+
+      <!-- 交易记录 -->
+      <el-col :span="16">
+        <el-card>
+          <div slot="header">
+            <span>交易记录</span>
+            <el-button style="float: right; padding: 3px 0" type="text" @click="getList">刷新</el-button>
+          </div>
+          
+          <!-- 交易记录表格 -->
+          <el-table
+            v-loading="listLoading"
+            :data="list"
+            border
+            fit
+            highlight-current-row
+            style="width: 100%;">
+            
+            <el-table-column label="交易时间" align="center" width="160">
+              <template slot-scope="scope">
+                <span>{{ scope.row.createdAt | parseTime('{y}-{m}-{d} {h}:{i}') }}</span>
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="交易类型" align="center" width="100">
+              <template slot-scope="scope">
+                <el-tag :type="scope.row.paymentType | paymentTypeFilter">
+                  {{ scope.row.paymentType | paymentTypeText }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="金额" align="center" width="100">
+              <template slot-scope="scope">
+                <span :class="['amount-display', getAmountClass(scope.row)]">
+                  {{ getAmountDisplay(scope.row) }}
+                </span>
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="支付方式" align="center" width="100">
+              <template slot-scope="scope">
+                {{ scope.row.paymentMethod | paymentMethodText }}
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="状态" align="center" width="80">
+              <template slot-scope="scope">
+                <el-tag :type="scope.row.status | statusTypeFilter">
+                  {{ scope.row.status | statusText }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="订单号" align="center" min-width="200">
+              <template slot-scope="scope">
+                {{ scope.row.orderId }}
+              </template>
+            </el-table-column>
+            
+            <el-table-column label="备注" align="center" min-width="150">
+              <template slot-scope="scope">
+                {{ getRemark(scope.row) }}
+              </template>
+            </el-table-column>
+          </el-table>
+
+          <!-- 分页 -->
+          <pagination
+            v-show="total>0"
+            :total="total"
+            :page.sync="listQuery.page"
+            :limit.sync="listQuery.size"
+            @pagination="getList"
           />
-          <el-select v-model="typeFilter" placeholder="交易类型" clearable @change="handleFilter">
-            <el-option label="充值" value="RECHARGE" />
-            <el-option label="消费" value="CONSUME" />
-            <el-option label="退款" value="REFUND" />
-          </el-select>
-          <el-button type="primary" @click="handleFilter">查询</el-button>
-        </div>
-
-        <el-table
-          v-loading="loading"
-          :data="transactions"
-          border
-          style="width: 100%"
-        >
-          <el-table-column prop="transactionTime" label="交易时间" width="160" />
-          <el-table-column prop="transactionType" label="交易类型" width="100">
-            <template slot-scope="{row}">
-              <el-tag :type="getTransactionTypeType(row.transactionType)">
-                {{ getTransactionTypeText(row.transactionType) }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="description" label="交易描述" />
-          <el-table-column prop="amount" label="金额" width="120">
-            <template slot-scope="{row}">
-              <span :class="getAmountClass(row.amount)">
-                {{ row.amount > 0 ? '+' : '' }}¥{{ row.amount.toFixed(2) }}
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="balance" label="余额" width="120">
-            <template slot-scope="{row}">
-              ¥{{ row.balance.toFixed(2) }}
-            </template>
-          </el-table-column>
-        </el-table>
-
-        <pagination
-          v-show="total>0"
-          :total="total"
-          :page.sync="listQuery.page"
-          :limit.sync="listQuery.limit"
-          @pagination="getList"
-        />
-      </el-card>
-    </el-card>
-
-    <!-- 充值对话框 -->
-    <el-dialog title="账户充值" :visible.sync="rechargeDialogVisible" width="30%">
-      <el-form ref="rechargeForm" :model="rechargeForm" :rules="rechargeRules" label-width="100px">
-        <el-form-item label="充值金额" prop="amount">
-          <el-input-number
-            v-model="rechargeForm.amount"
-            :min="100"
-            :max="5000"
-            :step="100"
-            controls-position="right"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="支付方式">
-          <el-select v-model="rechargeForm.paymentMethod" style="width: 100%">
-            <el-option label="微信支付" value="WECHAT" />
-            <el-option label="支付宝" value="ALIPAY" />
-            <el-option label="银行卡" value="BANK" />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="rechargeDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitRecharge">确认充值</el-button>
-      </div>
-    </el-dialog>
+        </el-card>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
 <script>
-import { getAccountInfo, getTransactions, rechargeAccount } from '@/api/student'
+import { getBalance, getUserPayments } from '@/api/student'
 import Pagination from '@/components/Pagination'
 
 export default {
@@ -133,182 +131,234 @@ export default {
   data() {
     return {
       balance: 0,
-      todayExpense: 0,
-      monthExpense: 0,
-      totalExpense: 0,
-      transactions: [],
-      dateRange: [],
-      typeFilter: '',
-      loading: false,
+      monthlyExpense: 0,
+      monthlyRecharge: 0,
+      list: [],
       total: 0,
+      listLoading: false,
       listQuery: {
-        page: 1,
-        limit: 20
-      },
-      rechargeDialogVisible: false,
-      rechargeForm: {
-        amount: 100,
-        paymentMethod: 'WECHAT'
-      },
-      rechargeRules: {
-        amount: [
-          { required: true, message: '请输入充值金额', trigger: 'blur' },
-          { type: 'number', min: 100, max: 5000, message: '充值金额必须在 100-5000 之间', trigger: 'blur' }
-        ]
+        page: 0,
+        size: 10
       }
+    }
+  },
+  filters: {
+    paymentTypeFilter(type) {
+      const map = {
+        'RECHARGE': 'success',
+        'COURSE_FEE': 'warning',
+        'REFUND': 'info',
+        'CONTEST_FEE': 'danger'
+      }
+      return map[type] || ''
+    },
+    paymentTypeText(type) {
+      const map = {
+        'RECHARGE': '充值',
+        'COURSE_FEE': '课程费用',
+        'REFUND': '退款',
+        'CONTEST_FEE': '比赛费用'
+      }
+      return map[type] || type
+    },
+    paymentMethodText(method) {
+      const map = {
+        'WECHAT': '微信支付',
+        'ALIPAY': '支付宝',
+        'OFFLINE': '线下支付'
+      }
+      return map[method] || method
+    },
+    statusTypeFilter(status) {
+      const map = {
+        'PENDING': 'warning',
+        'SUCCESS': 'success',
+        'FAILED': 'danger'
+      }
+      return map[status] || ''
+    },
+    statusText(status) {
+      const map = {
+        'PENDING': '待支付',
+        'SUCCESS': '已完成',
+        'FAILED': '已失败'
+      }
+      return map[status] || status
     }
   },
   created() {
-    this.getAccountInfo()
+    this.getAccountBalance()
     this.getList()
   },
   methods: {
-    async getAccountInfo() {
+    async getAccountBalance() {
       try {
-        const response = await getAccountInfo()
-        const data = response.data
-        this.balance = data.balance || 0
-        this.todayExpense = data.todayExpense || 0
-        this.monthExpense = data.monthExpense || 0
-        this.totalExpense = data.totalExpense || 0
+        const userId = this.$store.state.user.user?.id
+        if (!userId) {
+          this.$message.error('无法获取用户信息')
+          return
+        }
+
+        const response = await getBalance(userId)
+        if (response.code === 200) {
+          this.balance = response.data || 0
+        } else {
+          this.$message.error('获取余额失败')
+          this.balance = 0
+        }
       } catch (error) {
-        console.error('获取账户信息失败:', error)
-        this.$message.error('获取账户信息失败')
+        console.error('获取余额失败:', error)
+        this.$message.error('获取余额失败')
+        this.balance = 0
       }
     },
     async getList() {
-      this.loading = true
+      this.listLoading = true
       try {
+        const userId = this.$store.state.user.user?.id
+        if (!userId) {
+          this.$message.error('无法获取用户信息')
+          return
+        }
+
+        // 重置页码为0，确保从第一页开始获取
+        this.listQuery.page = 0
+
         const params = {
           page: this.listQuery.page,
-          limit: this.listQuery.limit,
-          type: this.typeFilter,
-          startDate: this.dateRange && this.dateRange[0] ? this.dateRange[0] : null,
-          endDate: this.dateRange && this.dateRange[1] ? this.dateRange[1] : null
+          size: this.listQuery.size,
+          sort: 'createdAt,desc'
         }
-        
-        const response = await getTransactions(params)
-        this.transactions = response.data.records || []
-        this.total = response.data.total || 0
+
+        const response = await getUserPayments(userId, params)
+        if (response.code === 200) {
+          this.list = response.data.content || []
+          this.total = response.data.totalElements || 0
+        } else {
+          this.$message.error('获取交易记录失败')
+          this.list = []
+          this.total = 0
+        }
       } catch (error) {
         console.error('获取交易记录失败:', error)
         this.$message.error('获取交易记录失败')
+        this.list = []
+        this.total = 0
       } finally {
-        this.loading = false
+        this.listLoading = false
       }
     },
-    handleFilter() {
-      this.listQuery.page = 1
-      this.getList()
-    },
-    handleRecharge() {
-      this.rechargeForm = {
-        amount: 100,
-        paymentMethod: 'WECHAT'
-      }
-      this.rechargeDialogVisible = true
-    },
-    async submitRecharge() {
-      try {
-        await this.$refs.rechargeForm.validate()
-        
-        await rechargeAccount({
-          amount: this.rechargeForm.amount,
-          paymentMethod: this.rechargeForm.paymentMethod
-        })
-        
-        this.$message.success(`充值成功 ¥${this.rechargeForm.amount}`)
-        this.rechargeDialogVisible = false
-        this.getAccountInfo()
-        this.getList()
-      } catch (error) {
-        console.error('充值失败:', error)
-        this.$message.error('充值失败')
+    getRemark(row) {
+      switch (row.paymentType) {
+        case 'RECHARGE':
+          return row.amount > 0 ? '账户充值' : '充值退款'
+        case 'COURSE_FEE':
+          return `课程费用 - 课程ID: ${row.relatedId || 'N/A'}`
+        case 'REFUND':
+          return '退款处理'
+        case 'CONTEST_FEE':
+          return `比赛费用 - 比赛ID: ${row.relatedId || 'N/A'}`
+        default:
+          return ''
       }
     },
-    getTransactionTypeType(type) {
-      const types = {
-        'RECHARGE': 'success',
-        'CONSUME': 'danger',
-        'REFUND': 'warning'
-      }
-      return types[type] || 'info'
+    goToRecharge() {
+      this.$router.push('/student/recharge')
     },
-    getTransactionTypeText(type) {
-      const texts = {
-        'RECHARGE': '充值',
-        'CONSUME': '消费',
-        'REFUND': '退款'
-      }
-      return texts[type] || type
+    goToCourseBook() {
+      this.$router.push('/student/course-book')
     },
-    getAmountClass(amount) {
-      return amount >= 0 ? 'positive-amount' : 'negative-amount'
-    }
+    getAmountClass(row) {
+      const positiveTypes = ['RECHARGE', 'REFUND']
+      const negativeTypes = ['COURSE_FEE', 'CONTEST_FEE']
+      
+      if (positiveTypes.includes(row.paymentType)) {
+        return 'positive-amount'
+      } else if (negativeTypes.includes(row.paymentType)) {
+        return 'negative-amount'
+      }
+      return row.amount > 0 ? 'positive-amount' : 'negative-amount'
+    },
+    getAmountDisplay(row) {
+      const positiveTypes = ['RECHARGE', 'REFUND']
+      const negativeTypes = ['COURSE_FEE', 'CONTEST_FEE']
+      
+      if (positiveTypes.includes(row.paymentType)) {
+        return `+${row.amount.toFixed(2)}`
+      } else if (negativeTypes.includes(row.paymentType)) {
+        return `-${Math.abs(row.amount).toFixed(2)}`
+      }
+      
+      // 默认处理
+      return row.amount > 0 ? `+${row.amount.toFixed(2)}` : `${row.amount.toFixed(2)}`
+    },
   }
 }
 </script>
 
 <style scoped>
-.balance-card {
+.account-info {
   text-align: center;
-  height: 200px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.balance-info {
-  padding: 20px 0;
+.balance-display {
+  margin-bottom: 30px;
 }
 
 .balance-label {
-  font-size: 16px;
+  font-size: 14px;
   color: #666;
   margin-bottom: 10px;
 }
 
 .balance-amount {
-  font-size: 36px;
+  font-size: 32px;
   font-weight: bold;
-  color: #F56C6C;
-  margin-bottom: 20px;
+  color: #409EFF;
 }
 
-.info-card {
-  height: 200px;
-  padding: 20px;
+.account-stats {
+  border-top: 1px solid #eee;
+  padding-top: 20px;
 }
 
-.info-item {
-  margin-bottom: 15px;
-  font-size: 14px;
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
 }
 
-.info-label {
+.stat-label {
   color: #666;
 }
 
-.info-value {
+.stat-value {
   font-weight: bold;
   color: #333;
 }
 
-.filter-container {
-  margin-bottom: 20px;
+.quick-actions {
+  text-align: center;
 }
 
-.filter-container > * {
-  margin-right: 10px;
-  margin-bottom: 10px;
+.amount-display {
+  font-weight: bold;
 }
 
 .positive-amount {
   color: #67C23A;
-  font-weight: bold;
 }
 
 .negative-amount {
+  color: #F56C6C;
+}
+
+.income {
+  color: #67C23A;
+  font-weight: bold;
+}
+
+.expense {
   color: #F56C6C;
   font-weight: bold;
 }

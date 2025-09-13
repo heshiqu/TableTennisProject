@@ -336,10 +336,10 @@ public class CourseController {
      * @return 教练在日期范围内的课程列表DTO
      *
      * @apiNote 获取指定教练在指定时间范围内的课程
-     *          时间格式：yyyy-MM-dd HH:mm:ss
+     *          支持URL编码的时间格式：yyyy-MM-dd HH:mm:ss
      */
     @GetMapping("/coach/{coachId}/date-range")
-    @Operation(summary = "获取教练在日期范围内的课程", description = "获取指定教练在指定时间范围内的课程，时间格式：yyyy-MM-dd HH:mm:ss")
+    @Operation(summary = "获取教练在日期范围内的课程", description = "获取指定教练在指定时间范围内的课程，支持URL编码的时间格式：yyyy-MM-dd HH:mm:ss")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "获取成功"),
             @ApiResponse(responseCode = "404", description = "教练不存在"),
@@ -349,12 +349,16 @@ public class CourseController {
     public ResponseEntity<MyApiResponse<List<CourseDTO>>> getCoachCoursesByDateRange(
             @Parameter(description = "教练ID", required = true) @PathVariable Long coachId,
             @Parameter(description = "开始时间", required = true)
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime start,
+            @RequestParam String start,
             @Parameter(description = "结束时间", required = true)
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end) {
+            @RequestParam String end) {
 
         try {
-            List<Course> courses = courseService.getCoachCoursesByDateRange(coachId, start, end);
+            // 处理URL编码的时间字符串
+            LocalDateTime startTime = LocalDateTime.parse(start.replace(" ", "T"));
+            LocalDateTime endTime = LocalDateTime.parse(end.replace(" ", "T"));
+            
+            List<Course> courses = courseService.getCoachCoursesByDateRange(coachId, startTime, endTime);
             return ResponseEntity.ok(MyApiResponse.success("获取成功", convertToDTOList(courses)));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -371,10 +375,10 @@ public class CourseController {
      * @return 学员在日期范围内的课程列表DTO
      *
      * @apiNote 获取指定学员在指定时间范围内的课程
-     *          时间格式：yyyy-MM-dd HH:mm:ss
+     *          支持URL编码的时间格式：yyyy-MM-dd HH:mm:ss
      */
     @GetMapping("/student/{studentId}/date-range")
-    @Operation(summary = "获取学员在日期范围内的课程", description = "获取指定学员在指定时间范围内的课程，时间格式：yyyy-MM-dd HH:mm:ss")
+    @Operation(summary = "获取学员在日期范围内的课程", description = "获取指定学员在指定时间范围内的课程，支持URL编码的时间格式：yyyy-MM-dd HH:mm:ss")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "获取成功"),
             @ApiResponse(responseCode = "404", description = "学员不存在"),
@@ -384,12 +388,16 @@ public class CourseController {
     public ResponseEntity<MyApiResponse<List<CourseDTO>>> getStudentCoursesByDateRange(
             @Parameter(description = "学员ID", required = true) @PathVariable Long studentId,
             @Parameter(description = "开始时间", required = true)
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime start,
+            @RequestParam String start,
             @Parameter(description = "结束时间", required = true)
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end) {
+            @RequestParam String end) {
 
         try {
-            List<Course> courses = courseService.getStudentCoursesByDateRange(studentId, start, end);
+            // 处理URL编码的时间字符串
+            LocalDateTime startTime = LocalDateTime.parse(start.replace(" ", "T"));
+            LocalDateTime endTime = LocalDateTime.parse(end.replace(" ", "T"));
+            
+            List<Course> courses = courseService.getStudentCoursesByDateRange(studentId, startTime, endTime);
             return ResponseEntity.ok(MyApiResponse.success("获取成功", convertToDTOList(courses)));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
@@ -663,5 +671,32 @@ public class CourseController {
         return courses.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 获取学生已完成的课程
+     *
+     * @param studentId 学生ID
+     * @return 学生已完成的课程列表DTO
+     *
+     * @apiNote 获取指定学生所有已完成的课程
+     *          课程状态为COMPLETED
+     */
+    @GetMapping("/student/{studentId}/completed")
+    @Operation(summary = "获取学生已完成的课程", description = "获取指定学生所有已完成的课程，课程状态为COMPLETED")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功"),
+            @ApiResponse(responseCode = "404", description = "学生不存在"),
+            @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
+    public ResponseEntity<MyApiResponse<List<CourseDTO>>> getCompletedCoursesByStudent(
+            @Parameter(description = "学生ID", required = true) @PathVariable Long studentId) {
+        try {
+            List<Course> courses = courseService.getCoursesByStudentAndStatus(studentId, CourseStatus.COMPLETED);
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", convertToDTOList(courses)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
     }
 }

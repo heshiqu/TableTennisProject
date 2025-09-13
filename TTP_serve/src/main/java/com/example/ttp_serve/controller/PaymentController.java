@@ -14,7 +14,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -313,27 +315,45 @@ public class PaymentController {
     }
 
     /**
-     * 获取用户的支付记录
+     * 获取用户的支付记录（分页）
      *
      * @param userId 用户ID
-     * @return 用户的支付记录列表DTO
+     * @param page 页码（从0开始，默认为0）
+     * @param size 每页数量（默认为10）
+     * @param sort 排序字段（可选，如：createdAt,desc）
+     * @return 分页的支付记录DTO
      *
-     * @apiNote 获取指定用户的所有支付记录
+     * @apiNote 获取指定用户的分页支付记录，支持排序和分页参数
      */
     @Operation(
-            summary = "获取用户的支付记录",
-            description = "获取指定用户的所有支付记录",
+            summary = "获取用户的支付记录（分页）",
+            description = "获取指定用户的分页支付记录，支持排序和分页参数",
             responses = {
                     @ApiResponse(responseCode = "200", description = "获取成功"),
                     @ApiResponse(responseCode = "400", description = "请求参数无效或业务逻辑错误")
             }
     )
     @GetMapping("/user/{userId}")
-    public ResponseEntity<MyApiResponse<List<PaymentDTO>>> getUserPayments(
-            @Parameter(description = "用户ID", required = true) @PathVariable Long userId) {
+    public ResponseEntity<MyApiResponse<Page<PaymentDTO>>> getUserPayments(
+            @Parameter(description = "用户ID", required = true) @PathVariable Long userId,
+            @Parameter(description = "页码（从0开始）", example = "0") 
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "每页数量", example = "10") 
+            @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "排序字段（如：createdAt,desc）", example = "createdAt,desc") 
+            @RequestParam(required = false) String sort) {
         try {
-            List<Payment> payments = paymentService.getUserPayments(userId);
-            return ResponseEntity.ok(MyApiResponse.success("获取成功", convertToDTOList(payments)));
+            Pageable pageable = PageRequest.of(page, size);
+            if (sort != null && !sort.isEmpty()) {
+                String[] sortParams = sort.split(",");
+                Sort.Direction direction = sortParams.length > 1 && "desc".equalsIgnoreCase(sortParams[1]) 
+                        ? Sort.Direction.DESC : Sort.Direction.ASC;
+                pageable = PageRequest.of(page, size, Sort.by(direction, sortParams[0]));
+            }
+            
+            Page<Payment> payments = paymentService.getUserPayments(userId, pageable);
+            Page<PaymentDTO> paymentDTOS = payments.map(this::convertToDTO);
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", paymentDTOS));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body(MyApiResponse.error(400, e.getMessage()));
@@ -341,28 +361,44 @@ public class PaymentController {
     }
 
     /**
-     * 获取特定状态的支付记录
+     * 获取特定状态的支付记录（分页）
      *
      * @param status 支付状态
-     * @return 特定状态的支付记录列表DTO
+     * @param page 页码（从0开始）
+     * @param size 每页大小
+     * @param sort 排序方式（如：createdAt,desc）
+     * @return 特定状态的支付记录分页DTO
      *
-     * @apiNote 获取系统中所有特定状态的支付记录
+     * @apiNote 获取系统中所有特定状态的支付记录，支持分页和排序
      *          状态包括：待支付、成功、失败
      */
     @Operation(
-            summary = "获取特定状态的支付记录",
-            description = "获取系统中所有特定状态的支付记录。状态包括：待支付、成功、失败",
+            summary = "获取特定状态的支付记录（分页）",
+            description = "获取系统中所有特定状态的支付记录，支持分页和排序。状态包括：待支付、成功、失败",
             responses = {
                     @ApiResponse(responseCode = "200", description = "获取成功"),
                     @ApiResponse(responseCode = "400", description = "请求参数无效或业务逻辑错误")
             }
     )
     @GetMapping("/status/{status}")
-    public ResponseEntity<MyApiResponse<List<PaymentDTO>>> getPaymentsByStatus(
-            @Parameter(description = "支付状态", required = true) @PathVariable PaymentStatus status) {
+    public ResponseEntity<MyApiResponse<Page<PaymentDTO>>> getPaymentsByStatus(
+            @Parameter(description = "支付状态", required = true) @PathVariable PaymentStatus status,
+            @Parameter(description = "页码（从0开始）", example = "0") 
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "每页大小", example = "10") 
+            @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "排序方式（如：createdAt,desc）", example = "createdAt,desc") 
+            @RequestParam(defaultValue = "createdAt,desc") String sort) {
         try {
-            List<Payment> payments = paymentService.getPaymentsByStatus(status);
-            return ResponseEntity.ok(MyApiResponse.success("获取成功", convertToDTOList(payments)));
+            String[] sortParams = sort.split(",");
+            Sort.Direction direction = sortParams.length > 1 && "desc".equalsIgnoreCase(sortParams[1]) 
+                    ? Sort.Direction.DESC : Sort.Direction.ASC;
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortParams[0]));
+            
+            Page<Payment> payments = paymentService.getPaymentsByStatus(status, pageable);
+            Page<PaymentDTO> paymentDTOS = payments.map(this::convertToDTO);
+            
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", paymentDTOS));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body(MyApiResponse.error(400, e.getMessage()));
@@ -370,28 +406,44 @@ public class PaymentController {
     }
 
     /**
-     * 获取特定类型的支付记录
+     * 获取特定类型的支付记录（分页）
      *
      * @param type 支付类型
-     * @return 特定类型的支付记录列表DTO
+     * @param page 页码（从0开始）
+     * @param size 每页大小
+     * @param sort 排序方式（如：createdAt,desc）
+     * @return 特定类型的支付记录分页DTO
      *
-     * @apiNote 获取系统中所有特定类型的支付记录
+     * @apiNote 获取系统中所有特定类型的支付记录，支持分页和排序
      *          类型包括：充值、课程费用、退款、比赛报名费
      */
     @Operation(
-            summary = "获取特定类型的支付记录",
-            description = "获取系统中所有特定类型的支付记录。类型包括：充值、课程费用、退款、比赛报名费",
+            summary = "获取特定类型的支付记录（分页）",
+            description = "获取系统中所有特定类型的支付记录，支持分页和排序。类型包括：充值、课程费用、退款、比赛报名费",
             responses = {
                     @ApiResponse(responseCode = "200", description = "获取成功"),
                     @ApiResponse(responseCode = "400", description = "请求参数无效或业务逻辑错误")
             }
     )
     @GetMapping("/type/{type}")
-    public ResponseEntity<MyApiResponse<List<PaymentDTO>>> getPaymentsByType(
-            @Parameter(description = "支付类型", required = true) @PathVariable PaymentType type) {
+    public ResponseEntity<MyApiResponse<Page<PaymentDTO>>> getPaymentsByType(
+            @Parameter(description = "支付类型", required = true) @PathVariable PaymentType type,
+            @Parameter(description = "页码（从0开始）", example = "0") 
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "每页大小", example = "10") 
+            @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "排序方式（如：createdAt,desc）", example = "createdAt,desc") 
+            @RequestParam(defaultValue = "createdAt,desc") String sort) {
         try {
-            List<Payment> payments = paymentService.getPaymentsByType(type);
-            return ResponseEntity.ok(MyApiResponse.success("获取成功", convertToDTOList(payments)));
+            String[] sortParams = sort.split(",");
+            Sort.Direction direction = sortParams.length > 1 && "desc".equalsIgnoreCase(sortParams[1]) 
+                    ? Sort.Direction.DESC : Sort.Direction.ASC;
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortParams[0]));
+            
+            Page<Payment> payments = paymentService.getPaymentsByType(type, pageable);
+            Page<PaymentDTO> paymentDTOS = payments.map(this::convertToDTO);
+            
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", paymentDTOS));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body(MyApiResponse.error(400, e.getMessage()));
@@ -399,28 +451,44 @@ public class PaymentController {
     }
 
     /**
-     * 获取特定方式的支付记录
+     * 获取特定方式的支付记录（分页）
      *
      * @param method 支付方式
-     * @return 特定方式的支付记录列表DTO
+     * @param page 页码（从0开始）
+     * @param size 每页大小
+     * @param sort 排序方式（如：createdAt,desc）
+     * @return 特定方式的支付记录分页DTO
      *
-     * @apiNote 获取系统中所有特定支付方式的记录
+     * @apiNote 获取系统中所有特定支付方式的记录，支持分页和排序
      *          方式包括：微信、支付宝、线下
      */
     @Operation(
-            summary = "获取特定方式的支付记录",
-            description = "获取系统中所有特定支付方式的记录。方式包括：微信、支付宝、线下",
+            summary = "获取特定方式的支付记录（分页）",
+            description = "获取系统中所有特定支付方式的记录，支持分页和排序。方式包括：微信、支付宝、线下",
             responses = {
                     @ApiResponse(responseCode = "200", description = "获取成功"),
                     @ApiResponse(responseCode = "400", description = "请求参数无效或业务逻辑错误")
             }
     )
     @GetMapping("/method/{method}")
-    public ResponseEntity<MyApiResponse<List<PaymentDTO>>> getPaymentsByMethod(
-            @Parameter(description = "支付方式", required = true) @PathVariable PaymentMethod method) {
+    public ResponseEntity<MyApiResponse<Page<PaymentDTO>>> getPaymentsByMethod(
+            @Parameter(description = "支付方式", required = true) @PathVariable PaymentMethod method,
+            @Parameter(description = "页码（从0开始）", example = "0") 
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "每页大小", example = "10") 
+            @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "排序方式（如：createdAt,desc）", example = "createdAt,desc") 
+            @RequestParam(defaultValue = "createdAt,desc") String sort) {
         try {
-            List<Payment> payments = paymentService.getPaymentsByMethod(method);
-            return ResponseEntity.ok(MyApiResponse.success("获取成功", convertToDTOList(payments)));
+            String[] sortParams = sort.split(",");
+            Sort.Direction direction = sortParams.length > 1 && "desc".equalsIgnoreCase(sortParams[1]) 
+                    ? Sort.Direction.DESC : Sort.Direction.ASC;
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortParams[0]));
+            
+            Page<Payment> payments = paymentService.getPaymentsByMethod(method, pageable);
+            Page<PaymentDTO> paymentDTOS = payments.map(this::convertToDTO);
+            
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", paymentDTOS));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body(MyApiResponse.error(400, e.getMessage()));
@@ -428,33 +496,49 @@ public class PaymentController {
     }
 
     /**
-     * 获取日期范围内的支付记录
+     * 获取日期范围内的支付记录（分页）
      *
      * @param start 开始时间
      * @param end 结束时间
-     * @return 日期范围内的支付记录列表DTO
+     * @param page 页码（从0开始）
+     * @param size 每页大小
+     * @param sort 排序方式（如：createdAt,desc）
+     * @return 日期范围内的支付记录分页DTO
      *
-     * @apiNote 获取指定时间范围内的所有支付记录
+     * @apiNote 获取指定时间范围内的所有支付记录，支持分页和排序
      *          时间格式：yyyy-MM-dd HH:mm:ss
      */
     @Operation(
-            summary = "获取日期范围内的支付记录",
-            description = "获取指定时间范围内的所有支付记录。时间格式：yyyy-MM-dd HH:mm:ss",
+            summary = "获取日期范围内的支付记录（分页）",
+            description = "获取指定时间范围内的所有支付记录，支持分页和排序。时间格式：yyyy-MM-dd HH:mm:ss",
             responses = {
                     @ApiResponse(responseCode = "200", description = "获取成功"),
                     @ApiResponse(responseCode = "400", description = "请求参数无效或业务逻辑错误")
             }
     )
     @GetMapping("/date-range")
-    public ResponseEntity<MyApiResponse<List<PaymentDTO>>> getPaymentsByDateRange(
+    public ResponseEntity<MyApiResponse<Page<PaymentDTO>>> getPaymentsByDateRange(
             @Parameter(description = "开始时间", required = true)
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime start,
             @Parameter(description = "结束时间", required = true)
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end) {
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end,
+            @Parameter(description = "页码（从0开始）", example = "0") 
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "每页大小", example = "10") 
+            @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "排序方式（如：createdAt,desc）", example = "createdAt,desc") 
+            @RequestParam(defaultValue = "createdAt,desc") String sort) {
 
         try {
-            List<Payment> payments = paymentService.getPaymentsByDateRange(start, end);
-            return ResponseEntity.ok(MyApiResponse.success("获取成功", convertToDTOList(payments)));
+            String[] sortParams = sort.split(",");
+            Sort.Direction direction = sortParams.length > 1 && "desc".equalsIgnoreCase(sortParams[1]) 
+                    ? Sort.Direction.DESC : Sort.Direction.ASC;
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortParams[0]));
+            
+            Page<Payment> payments = paymentService.getPaymentsByDateRange(start, end, pageable);
+            Page<PaymentDTO> paymentDTOS = payments.map(this::convertToDTO);
+            
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", paymentDTOS));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body(MyApiResponse.error(400, e.getMessage()));
@@ -462,35 +546,51 @@ public class PaymentController {
     }
 
     /**
-     * 获取用户在日期范围内的支付记录
+     * 获取用户在日期范围内的支付记录（分页）
      *
      * @param userId 用户ID
      * @param start 开始时间
      * @param end 结束时间
-     * @return 用户在日期范围内的支付记录列表DTO
+     * @param page 页码（从0开始）
+     * @param size 每页大小
+     * @param sort 排序方式（如：createdAt,desc）
+     * @return 用户在日期范围内的支付记录分页DTO
      *
-     * @apiNote 获取指定用户在指定时间范围内的支付记录
+     * @apiNote 获取指定用户在指定时间范围内的支付记录，支持分页和排序
      *          时间格式：yyyy-MM-dd HH:mm:ss
      */
     @Operation(
-            summary = "获取用户在日期范围内的支付记录",
-            description = "获取指定用户在指定时间范围内的支付记录。时间格式：yyyy-MM-dd HH:mm:ss",
+            summary = "获取用户在日期范围内的支付记录（分页）",
+            description = "获取指定用户在指定时间范围内的支付记录，支持分页和排序。时间格式：yyyy-MM-dd HH:mm:ss",
             responses = {
                     @ApiResponse(responseCode = "200", description = "获取成功"),
                     @ApiResponse(responseCode = "400", description = "请求参数无效或业务逻辑错误")
             }
     )
     @GetMapping("/user/{userId}/date-range")
-    public ResponseEntity<MyApiResponse<List<PaymentDTO>>> getUserPaymentsByDateRange(
+    public ResponseEntity<MyApiResponse<Page<PaymentDTO>>> getUserPaymentsByDateRange(
             @Parameter(description = "用户ID", required = true) @PathVariable Long userId,
             @Parameter(description = "开始时间", required = true)
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime start,
             @Parameter(description = "结束时间", required = true)
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end) {
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end,
+            @Parameter(description = "页码（从0开始）", example = "0") 
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "每页大小", example = "10") 
+            @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "排序方式（如：createdAt,desc）", example = "createdAt,desc") 
+            @RequestParam(defaultValue = "createdAt,desc") String sort) {
 
         try {
-            List<Payment> payments = paymentService.getUserPaymentsByDateRange(userId, start, end);
-            return ResponseEntity.ok(MyApiResponse.success("获取成功", convertToDTOList(payments)));
+            String[] sortParams = sort.split(",");
+            Sort.Direction direction = sortParams.length > 1 && "desc".equalsIgnoreCase(sortParams[1]) 
+                    ? Sort.Direction.DESC : Sort.Direction.ASC;
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortParams[0]));
+            
+            Page<Payment> payments = paymentService.getUserPaymentsByDateRange(userId, start, end, pageable);
+            Page<PaymentDTO> paymentDTOS = payments.map(this::convertToDTO);
+            
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", paymentDTOS));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body(MyApiResponse.error(400, e.getMessage()));

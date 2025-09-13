@@ -32,11 +32,20 @@ export function getUserList(params) {
 }
 
 // 更新用户状态
-export function updateUserStatus(userId, status) {
+export function updateUserStatus(id, status) {
   return request({
-    url: `/api/users/${userId}/status`,
-    method: 'patch',
+    url: `/api/users/${id}/status`,
+    method: 'put',
     data: { status }
+  })
+}
+
+// 更新用户信息
+export function updateUserInfo(id, data) {
+  return request({
+    url: `/api/users/${id}`,
+    method: 'put',
+    data
   })
 }
 

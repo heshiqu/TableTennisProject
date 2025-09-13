@@ -307,9 +307,28 @@ export default {
     },
     getCourseAt(date, time) {
       const dateStr = date.toISOString().split('T')[0]
-      return this.schedule.find(course => 
-        course.date === dateStr && course.startTime === time
-      )
+      
+      return this.schedule.find(course => {
+        if (course.date !== dateStr) return false
+        
+        // 处理连续时间段的课程
+        if (course.startTime && course.endTime) {
+          const [timeHour, timeMinute] = time.split(':').map(Number)
+          const timeInMinutes = timeHour * 60 + timeMinute
+          
+          const courseStart = new Date(course.startTime)
+          const courseEnd = new Date(course.endTime)
+          
+          const courseStartInMinutes = courseStart.getHours() * 60 + courseStart.getMinutes()
+          const courseEndInMinutes = courseEnd.getHours() * 60 + courseEnd.getMinutes()
+          
+          // 检查时间段是否重叠
+          return timeInMinutes >= courseStartInMinutes && timeInMinutes < courseEndInMinutes
+        }
+        
+        // 兼容旧的时间格式
+        return course.startTime === time
+      })
     },
     getCourseStatus(course) {
       return course.status.toLowerCase()

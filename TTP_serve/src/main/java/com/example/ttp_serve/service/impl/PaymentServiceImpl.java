@@ -105,8 +105,23 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    public Page<Payment> getUserPayments(Long userId, Pageable pageable) {
+        // 检查用户是否存在
+        if (!userRepository.existsById(userId)) {
+            throw new ResourceNotFoundException("用户ID '" + userId + "' 不存在");
+        }
+
+        return paymentRepository.findByUserId(userId, pageable);
+    }
+
+    @Override
     public List<Payment> getPaymentsByStatus(PaymentStatus status) {
         return paymentRepository.findByStatus(status);
+    }
+
+    @Override
+    public Page<Payment> getPaymentsByStatus(PaymentStatus status, Pageable pageable) {
+        return paymentRepository.findByStatus(status, pageable);
     }
 
     @Override
@@ -115,13 +130,28 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    public Page<Payment> getPaymentsByType(PaymentType type, Pageable pageable) {
+        return paymentRepository.findByPaymentType(type, pageable);
+    }
+
+    @Override
     public List<Payment> getPaymentsByMethod(PaymentMethod method) {
         return paymentRepository.findByPaymentMethod(method);
     }
 
     @Override
+    public Page<Payment> getPaymentsByMethod(PaymentMethod method, Pageable pageable) {
+        return paymentRepository.findByPaymentMethod(method, pageable);
+    }
+
+    @Override
     public List<Payment> getPaymentsByDateRange(LocalDateTime start, LocalDateTime end) {
         return paymentRepository.findByCreatedAtBetween(start, end);
+    }
+
+    @Override
+    public Page<Payment> getPaymentsByDateRange(LocalDateTime start, LocalDateTime end, Pageable pageable) {
+        return paymentRepository.findByCreatedAtBetween(start, end, pageable);
     }
 
     @Override
@@ -132,6 +162,16 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         return paymentRepository.findByUserIdAndCreatedAtBetween(userId, start, end);
+    }
+
+    @Override
+    public Page<Payment> getUserPaymentsByDateRange(Long userId, LocalDateTime start, LocalDateTime end, Pageable pageable) {
+        // 检查用户是否存在
+        if (!userRepository.existsById(userId)) {
+            throw new ResourceNotFoundException("用户ID '" + userId + "' 不存在");
+        }
+
+        return paymentRepository.findByUserIdAndCreatedAtBetween(userId, start, end, pageable);
     }
 
     @Override

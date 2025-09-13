@@ -161,6 +161,21 @@ module.exports = [
         data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
       }
     }
+  },
+
+  // 头像上传接口
+  {
+    url: '/api/upload/avatar',
+    type: 'post',
+    response: () => {
+      // 模拟上传成功，返回相对路径
+      const filename = 'mock-avatar-' + Date.now() + '.jpg'
+      return {
+        code: 200,
+        message: '头像上传成功',
+        data: '/uploads/avatars/' + filename
+      }
+    }
   },"explanation":"简化用户信息响应，添加头像文件服务mock"}
 
   // get user role

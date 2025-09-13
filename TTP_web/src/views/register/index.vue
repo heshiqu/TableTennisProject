@@ -141,7 +141,7 @@
               accept="image/*"
             >
               <div class="avatar-display-area">
-                <img v-if="registerForm.avatar" :src="registerForm.avatar" class="avatar-image" @error="handleImageError" />
+                <img v-if="registerForm.avatar" :src="getAvatarDisplayUrl(registerForm.avatar)" class="avatar-image" @error="handleImageError" />
                 <div v-else class="avatar-placeholder-enhanced">
                   <div class="avatar-icon-wrapper">
                     <svg-icon icon-class="user" class="avatar-icon-large" />
@@ -444,6 +444,21 @@ export default {
       console.error('头像图片加载失败，使用默认头像')
       this.registerForm.avatar = ''
     },
+
+    // 获取头像显示URL（将相对地址转为完整URL）
+    getAvatarDisplayUrl(relativeUrl) {
+      if (!relativeUrl) return ''
+      
+      const baseApi = process.env.VUE_APP_BASE_API || 'http://localhost:8080'
+      
+      if (relativeUrl.startsWith('http')) {
+        return relativeUrl
+      } else if (relativeUrl.startsWith('/')) {
+        return baseApi + relativeUrl
+      } else {
+        return baseApi + '/uploads/avatars/' + relativeUrl
+      }
+    },
     
     // 头像上传前检查
     beforeAvatarUpload(file) {
@@ -472,9 +487,33 @@ export default {
 
       uploadAvatar(file)
         .then(response => {
-          // 处理不同响应格式
-          const avatarUrl = response.data || response.data.data || response
-          this.registerForm.avatar = avatarUrl.startsWith('http') ? avatarUrl : `http://localhost:8080${avatarUrl}`
+          // 处理不同响应格式，提取相对地址
+          let avatarUrl = response.data || response.data?.data || response
+          
+          if (typeof avatarUrl === 'string') {
+            if (avatarUrl.startsWith('http')) {
+              // 如果是完整URL，提取相对路径部分
+              const baseApi = process.env.VUE_APP_BASE_API || 'http://localhost:8080'
+              if (avatarUrl.includes('/uploads/avatars/')) {
+                // 提取相对路径部分（从/uploads开始）
+                const relativePath = avatarUrl.substring(avatarUrl.indexOf('/uploads/avatars/'))
+                this.registerForm.avatar = relativePath
+              } else {
+                // 无法提取，使用返回的相对地址
+                this.registerForm.avatar = avatarUrl
+              }
+            } else if (avatarUrl.startsWith('/')) {
+              // 已经是相对路径，直接使用
+              this.registerForm.avatar = avatarUrl
+            } else {
+              // 如果是文件名，拼接相对路径
+              this.registerForm.avatar = '/uploads/avatars/' + avatarUrl
+            }
+          } else {
+            const baseApi = process.env.VUE_APP_BASE_API || 'http://localhost:8080'
+      this.registerForm.avatar = baseApi + '/uploads/avatars/default-avatar.jpg'
+          }
+          
           this.$message.success('头像上传成功')
         })
         .catch(error => {

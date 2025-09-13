@@ -98,6 +98,54 @@ export function getCourseList(params) {
   })
 }
 
+// 获取学生的课程列表（按日期范围）
+export function getStudentCoursesByDateRange(studentId, start, end) {
+  // 确保时间格式为 yyyy-MM-dd HH:mm:ss
+  const formatDate = (date) => {
+    const d = new Date(date)
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    const hours = String(d.getHours()).padStart(2, '0')
+    const minutes = String(d.getMinutes()).padStart(2, '0')
+    const seconds = String(d.getSeconds()).padStart(2, '0')
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  }
+  
+  return request({
+    url: `/api/courses/student/${studentId}/date-range`,
+    method: 'get',
+    params: { 
+      start: formatDate(start), 
+      end: formatDate(end) 
+    }
+  })
+}
+
+// 获取教练的课程列表（按日期范围）
+export function getCoachCoursesByDateRange(coachId, start, end) {
+  // 确保时间格式为 yyyy-MM-dd HH:mm:ss
+  const formatDate = (date) => {
+    const d = new Date(date)
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    const hours = String(d.getHours()).padStart(2, '0')
+    const minutes = String(d.getMinutes()).padStart(2, '0')
+    const seconds = String(d.getSeconds()).padStart(2, '0')
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  }
+  
+  return request({
+    url: `/api/courses/coach/${coachId}/date-range`,
+    method: 'get',
+    params: { 
+      start: formatDate(start), 
+      end: formatDate(end) 
+    }
+  })
+}
+
 // 校区管理员确认课程（管理员权限）
 export function adminConfirmCourse(courseId) {
   return request({
