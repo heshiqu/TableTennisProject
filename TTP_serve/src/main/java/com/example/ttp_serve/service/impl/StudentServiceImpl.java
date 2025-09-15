@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 /**
  * 学员服务实现类
@@ -30,5 +31,29 @@ public class StudentServiceImpl implements StudentService {
     public Student getStudentById(Long studentId) {
         return studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("学生ID '" + studentId + "' 不存在"));
+    }
+
+    @Override
+    public Integer getCurrentMonthCancelCount(Long studentId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("学生ID '" + studentId + "' 不存在"));
+        
+        // 获取当前年月
+        LocalDate currentDate = LocalDate.now();
+        LocalDate firstDayOfCurrentMonth = currentDate.withDayOfMonth(1);
+        
+        // 检查最后取消月份是否为本月
+        if (student.getLastCancelMonth() != null && 
+            student.getLastCancelMonth().isEqual(firstDayOfCurrentMonth)) {
+            return student.getCancelCount();
+        }
+        
+        // 如果不是本月，将数据库中的cancelCount置为0
+        if (student.getCancelCount() != null && student.getCancelCount() > 0) {
+            student.setCancelCount(0);
+            studentRepository.save(student);
+        }
+        
+        return 0;
     }
 }

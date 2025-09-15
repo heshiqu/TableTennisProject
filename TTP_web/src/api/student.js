@@ -95,10 +95,18 @@ export function getStudentCoursesByDateRange(studentId, startDate, endDate) {
   })
 }
 
-// 获取学员已完成的训练记录
+// 获取学生已完成的训练记录
 export function getStudentCompletedCourses(studentId) {
   return request({
     url: `/api/courses/student/${studentId}/completed`,
+    method: 'get'
+  })
+}
+
+// 获取学生本月取消次数
+export function getStudentMonthlyCancelCount(studentId) {
+  return request({
+    url: `/api/students/${studentId}/cancel-count`,
     method: 'get'
   })
 }

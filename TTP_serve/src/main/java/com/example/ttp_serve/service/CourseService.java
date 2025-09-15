@@ -5,6 +5,8 @@ import com.example.ttp_serve.entity.Course;
 import com.example.ttp_serve.enums.CourseStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
+
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -76,6 +78,10 @@ public interface CourseService {
 
     // 获取即将开始的课程（用于提醒）
     List<Course> getUpcomingCourses(int hours);
+
+    // 批量完成已结束的课程
+    @Transactional
+    void completeExpiredCourses(Long userId);
 
     // 获取需要评价的课程
     List<Course> getCoursesNeedEvaluation(Long userId);

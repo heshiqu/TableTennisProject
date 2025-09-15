@@ -8,6 +8,7 @@ import com.example.ttp_serve.dto.UserDTO;
 import com.example.ttp_serve.entity.User;
 import com.example.ttp_serve.enums.UserType;
 import com.example.ttp_serve.service.AuthService;
+import com.example.ttp_serve.service.CourseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -31,6 +32,7 @@ import jakarta.validation.Valid;
 public class AuthController {
 
     private final AuthService authService;
+    private final CourseService courseService;
 
     /**
      * 用户登录
@@ -64,6 +66,16 @@ public class AuthController {
                     user.getUserType(),
                     user.getCampus() != null ? user.getCampus().getId() : null
             );
+
+            // 如果是教练或学生，检查并更新已结束的课程状态
+            if (user.getUserType() == UserType.COACH || user.getUserType() == UserType.STUDENT) {
+                try {
+                    courseService.completeExpiredCourses(user.getId());
+                } catch (Exception e) {
+                    // 记录日志但不影响登录流程
+                    System.err.println("更新课程状态时发生错误: " + e.getMessage());
+                }
+            }
 
             return ResponseEntity.ok(MyApiResponse.success("登录成功", response));
         } catch (Exception e) {

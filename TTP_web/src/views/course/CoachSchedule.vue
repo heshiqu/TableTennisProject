@@ -5,17 +5,27 @@
       <p>查看您的所有课程安排</p>
     </div>
     
-    <ScheduleCalendar user-type="coach" />
+    <ScheduleCalendar 
+      user-type="coach" 
+      :custom-user-id="currentUserId"
+    />
   </div>
 </template>
 
 <script>
 import ScheduleCalendar from './ScheduleCalendar.vue'
+import { mapGetters } from 'vuex'
 
 export default {
   name: 'CoachSchedule',
   components: {
     ScheduleCalendar
+  },
+  computed: {
+    ...mapGetters(['userId']),
+    currentUserId() {
+      return this.userId
+    }
   }
 }
 </script>

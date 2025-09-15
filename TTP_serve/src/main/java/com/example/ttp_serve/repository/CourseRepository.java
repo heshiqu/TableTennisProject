@@ -62,6 +62,13 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
                              @Param("startTime") LocalDateTime startTime,
                              @Param("endTime") LocalDateTime endTime);
 
+    // 查找已确认且结束时间已过的课程
+    @Query("SELECT c FROM Course c WHERE " +
+            "c.status = 'CONFIRMED' AND c.endTime < :currentTime AND " +
+            "(c.coach.id = :userId OR c.student.id = :userId)")
+    List<Course> findConfirmedExpiredCoursesByUser(@Param("userId") Long userId,
+                                                 @Param("currentTime") LocalDateTime currentTime);
+
     // 查找需要提醒的课程（上课前一小时）
     @Query("SELECT c FROM Course c WHERE c.status = 'CONFIRMED' AND " +
             "c.startTime BETWEEN :startTime AND :endTime")

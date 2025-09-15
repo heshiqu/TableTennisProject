@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -193,6 +194,27 @@ public class CourseServiceImpl implements CourseService {
                     payment.getRelatedId()// related_id设置为课程ID
             );
             paymentService.processRefund(refundPayment.getOrderId());
+
+            // 如果是学生取消已确认的课程，增加取消次数
+            if (cancelledBy.equals(course.getStudent().getId())) {
+                Student student = studentRepository.findById(course.getStudent().getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("学员ID '" + course.getStudent().getId() + "' 不存在"));
+                
+                // 获取当前年月的第一天
+                LocalDate currentMonth = LocalDate.now().withDayOfMonth(1);
+                
+                // 检查是否是本月第一次取消
+                if (student.getLastCancelMonth() == null || !student.getLastCancelMonth().equals(currentMonth)) {
+                    // 如果是新的月份，重置取消次数为1
+                    student.setCancelCount(1);
+                    student.setLastCancelMonth(currentMonth);
+                } else {
+                    // 如果是本月内取消，增加取消次数
+                    student.setCancelCount(student.getCancelCount() + 1);
+                }
+                
+                studentRepository.save(student);
+            }
         }
 
         course.setStatus(CourseStatus.CANCELLED);
@@ -256,6 +278,27 @@ public class CourseServiceImpl implements CourseService {
         course.setUpdatedAt(LocalDateTime.now());
 
         return courseRepository.save(course);
+    }
+
+    @Override
+    @Transactional
+    public void completeExpiredCourses(Long userId) {
+        // 获取当前时间
+        LocalDateTime currentTime = LocalDateTime.now();
+        
+        // 查找该用户相关的已确认且已结束的课程
+        List<Course> expiredCourses = courseRepository.findConfirmedExpiredCoursesByUser(userId, currentTime);
+        
+        if (!expiredCourses.isEmpty()) {
+            // 批量更新课程状态为已完成
+            for (Course course : expiredCourses) {
+                course.setStatus(CourseStatus.COMPLETED);
+                course.setUpdatedAt(LocalDateTime.now());
+            }
+            
+            // 批量保存
+            courseRepository.saveAll(expiredCourses);
+        }
     }
 
     @Override

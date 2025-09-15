@@ -119,8 +119,7 @@
 <script>
 import { mapGetters } from 'vuex'
 import CountTo from 'vue-count-to'
-import { getBalance, getStudentCoachCount, getStudentCoursesByDateRange } from '@/api/student'
-import { getCancellationStats } from '@/api/course'
+import { getBalance, getStudentCoachCount, getStudentCoursesByDateRange, getStudentMonthlyCancelCount } from '@/api/student'
 import { getSystemMessages } from '@/api/system'
 
 export default {
@@ -170,7 +169,7 @@ export default {
           // 并行获取所有数据
           const [balanceRes, statsRes, messagesRes, coachCountRes, coursesRes] = await Promise.allSettled([
             getBalance(userId),
-            getCancellationStats(),
+            getStudentMonthlyCancelCount(userId),
             getSystemMessages({ page: 1, size: 5 }),
             getStudentCoachCount(userId),
             this.getTodayCourses(userId, startStr, endStr)
@@ -186,7 +185,7 @@ export default {
           
           // 处理取消次数
           if (statsRes.status === 'fulfilled') {
-            this.cancellationCount = statsRes.value.data.monthlyCancellation || 0
+            this.cancellationCount = statsRes.value.data || 0
           } else {
             this.cancellationCount = 0
           }

@@ -11,6 +11,9 @@
         :user-type="'coach'"
         :custom-user-id="coachId"
         :show-header="true"
+        :show-cancelled-list="false"
+        :show-student-name="false"
+        :read-only="true"
       />
     </div>
   </el-dialog>

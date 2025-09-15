@@ -189,6 +189,12 @@ export default {
       
       return this.courses.some(course => {
         if (!course || !course.startTime || !course.endTime) return false
+        
+        // 排除已取消的课程，已取消的课程不应占用时间段
+        if (course.status === 'CANCELLED') {
+          return false
+        }
+        
         try {
           const courseDate = new Date(course.startTime).toISOString().split('T')[0]
           const courseStartTime = new Date(course.startTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
@@ -213,6 +219,12 @@ export default {
       
       const course = this.courses.find(course => {
         if (!course || !course.startTime || !course.endTime) return false
+        
+        // 排除已取消的课程
+        if (course.status === 'CANCELLED') {
+          return false
+        }
+        
         try {
           const courseDate = new Date(course.startTime).toISOString().split('T')[0]
           const courseStartTime = new Date(course.startTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
@@ -233,7 +245,7 @@ export default {
       if (course) {
         const courseStart = new Date(course.startTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
         const courseEnd = new Date(course.endTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-        return `${course.studentName || '已预约'} (${courseStart}-${courseEnd})`
+        return `已预约 (${courseStart}-${courseEnd})`
       }
       return ''
     },

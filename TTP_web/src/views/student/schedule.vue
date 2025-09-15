@@ -109,6 +109,55 @@
       </el-card>
     </el-card>
 
+    <!-- 已取消课程列表 -->
+    <el-card v-if="cancelledCourses.length > 0" style="margin-top: 20px;">
+      <div slot="header">
+        <span>本周已取消课程</span>
+        <el-tag type="danger" style="margin-left: 10px;">{{ cancelledCourses.length }} 节</el-tag>
+      </div>
+      
+      <el-table :data="cancelledCourses" style="width: 100%">
+        <el-table-column prop="date" label="日期" width="120">
+          <template slot-scope="scope">
+            {{ new Date(scope.row.startTime).toLocaleDateString('zh-CN') }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="time" label="时间" width="180">
+          <template slot-scope="scope">
+            {{ scope.row.startTime | formatTime }} - {{ scope.row.endTime | formatTime }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="coachName" label="教练" width="120"></el-table-column>
+        <el-table-column prop="tableName" label="球台" width="100"></el-table-column>
+        <el-table-column prop="fee" label="费用" width="80">
+          <template slot-scope="scope">
+            {{ scope.row.fee }}元
+          </template>
+        </el-table-column>
+        <el-table-column prop="cancelReason" label="取消原因" width="150">
+          <template slot-scope="scope">
+            <span v-if="scope.row.cancelReason">{{ scope.row.cancelReason }}</span>
+            <span v-else>未填写原因</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="cancelByUserName" label="取消人" width="100">
+          <template slot-scope="scope">
+            {{ scope.row.cancelByUserName || '系统' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="cancelTime" label="取消时间" width="150">
+          <template slot-scope="scope">
+            {{ new Date(scope.row.cancelTime).toLocaleString('zh-CN') }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="100">
+          <template slot-scope="scope">
+            <el-button size="mini" @click="handleCourseDetail(scope.row)">详情</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+
     <!-- 课程详情对话框 -->
     <el-dialog title="课程详情" :visible.sync="detailDialogVisible" width="50%">
       <div v-if="selectedCourse">
@@ -201,6 +250,7 @@ export default {
       ],
       schedule: [],
       courseList: [],
+      cancelledCourses: [], // 已取消课程列表
       listType: 'upcoming',
       selectedCourse: null,
       detailDialogVisible: false,
@@ -225,6 +275,11 @@ export default {
     formatDay(date) {
       if (!date) return ''
       return new Date(date).getDate()
+    },
+    formatTime(datetime) {
+      if (!datetime) return ''
+      const date = new Date(datetime)
+      return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
     },
     statusFilter(status) {
       const statusMap = {
@@ -281,7 +336,11 @@ export default {
             startDate: startDate.toISOString().split('T')[0],
             endDate: endDate.toISOString().split('T')[0]
           })
-          this.schedule = response.data || []
+          const allCourses = response.data || []
+          // 过滤掉已取消的课程，只显示非取消状态的课程在课表中
+          this.schedule = allCourses.filter(course => course.status !== 'CANCELLED')
+          // 单独保存已取消的课程用于下方展示
+          this.cancelledCourses = allCourses.filter(course => course.status === 'CANCELLED')
         }
       } catch (error) {
         console.error('获取课表失败:', error)

@@ -159,7 +159,8 @@
 </template>
 
 <script>
-import { getUserInfo, updateUserInfo, updatePassword } from '@/api/student'
+import { getUserInfo, updateUserInfo } from '@/api/student'
+import { updatePassword } from '@/api/user'
 import { getCampusList } from '@/api/system'
 
 export default {

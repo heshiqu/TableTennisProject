@@ -79,6 +79,31 @@ public class StudentController {
     }
 
     /**
+     * 根据学生ID获取本月取消次数
+     *
+     * @param studentId 学生ID
+     * @return 本月取消次数信息
+     */
+    @GetMapping("/{studentId}/cancel-count")
+    @Operation(summary = "获取学生本月取消次数", description = "根据学生ID获取学生本月的取消预约次数")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功"),
+            @ApiResponse(responseCode = "404", description = "学生不存在"),
+            @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
+    public ResponseEntity<MyApiResponse<Integer>> getCurrentMonthCancelCount(
+            @Parameter(description = "学生ID", required = true, example = "1")
+            @PathVariable Long studentId) {
+        try {
+            Integer cancelCount = studentService.getCurrentMonthCancelCount(studentId);
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", cancelCount));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
+    }
+
+    /**
      * 将Student实体转换为StudentDTO
      *
      * @param student 学生实体

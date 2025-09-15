@@ -64,25 +64,35 @@
               {{ selectedTimeRange.startDate }} {{ selectedTimeRange.startTime }} - {{ selectedTimeRange.endTime }}
             </span>
           </div>
-          <el-row :gutter="20">
-            <el-col :span="6" v-for="table in availableTables" :key="table.id">
-              <el-card 
-                :body-style="{ padding: '15px', textAlign: 'center' }"
-                :class="[{ 'selected-card': selectedTable && selectedTable.id === table.id }, 
-                         { 'disabled-card': table.status !== 'AVAILABLE' }]"
-                @click.native="selectTable(table)">
-                <div class="table-item">
-                  <div class="table-number">球台编号：{{ table.courtNumber || table.name }}</div>
-                  <div class="table-status" :class="table.status">
-                    <span :class="getStatusClass(table.status)">{{ table.status | statusFilter }}</span>
+          <div v-loading="loadingTables" element-loading-text="正在检查球台可用性...">
+            <el-row :gutter="20">
+              <el-col :span="6" v-for="table in availableTables" :key="table.id">
+                <el-card 
+                  :body-style="{ padding: '15px', textAlign: 'center', minHeight: '120px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }"
+                  :class="[{ 'selected-card': selectedTable && selectedTable.id === table.id }, 
+                           { 'disabled-card': table.status !== 'AVAILABLE' }]"
+                  @click.native="selectTable(table)">
+                  <div class="table-item">
+                    <div class="table-number">球台编号：{{ table.courtNumber || table.name }}</div>
+                    <div class="table-status" :class="table.status">
+                      <span :class="getStatusClass(table.status)">{{ table.status | statusFilter }}</span>
+                      <div v-if="table.status === 'OCCUPIED' && table.availableInTimeRange === false" 
+                           class="status-hint">
+                        时段占用
+                      </div>
+                      <div v-else-if="table.status === 'MAINTENANCE'" 
+                           class="status-hint">
+                        维护中
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </el-card>
-            </el-col>
-          </el-row>
-          <el-empty v-if="availableTables.length === 0" description="暂无可用的球台"></el-empty>
-          <div style="text-align: center; margin: 20px 0;">
-            <el-button type="info" @click="autoAssignTable">系统自动分配</el-button>
+                </el-card>
+              </el-col>
+            </el-row>
+            <el-empty v-if="availableTables.length === 0" description="暂无可用的球台"></el-empty>
+            <div style="text-align: center; margin: 20px 0;">
+              <el-button type="info" @click="autoAssignTable" :disabled="!hasAvailableTable()">系统自动分配</el-button>
+            </div>
           </div>
         </el-card>
 
@@ -169,6 +179,7 @@ export default {
       selectedTimeRange: null,
       availableSlots: [],
       availableTables: [],
+      loadingTables: false,
       defaultAvatar: (process.env.VUE_APP_BASE_API || 'http://localhost:8080') + '/uploads/avatars/default-avatar.jpg',
       calendarRange: [new Date(), new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)]
     }
@@ -213,6 +224,32 @@ export default {
         console.error('获取球台数据失败:', error)
         this.$message.error('获取球台数据失败')
         return []
+      }
+    },
+
+    // 检查球台在指定时间段是否可用
+    async checkCourtAvailability(courtId, startTime, endTime) {
+      try {
+        // 将时间格式转换为ISO 8601格式（2025-09-16T20:00:00）
+        const formatDateTime = (dateTimeStr) => {
+          const [date, time] = dateTimeStr.split(' ')
+          return `${date}T${time}:00`
+        }
+        
+        const response = await request({
+          url: '/api/courses/check-court-time-conflict',
+          method: 'get',
+          params: {
+            courtId: courtId,
+            startTime: formatDateTime(startTime),
+            endTime: formatDateTime(endTime)
+          }
+        })
+        // 返回false表示球台空闲，true表示球台被占用
+        return !response.data
+      } catch (error) {
+        console.error('检查球台可用性失败:', error)
+        return false // 默认返回不可用，避免错误选择
       }
     },
     
@@ -261,6 +298,7 @@ export default {
     async loadAvailableTables() {
       if (!this.selectedTimeRange) return
       
+      this.loadingTables = true
       try {
         // 获取当前用户的校区ID
         const campusId = this.$store.state.user.user?.campusId
@@ -272,13 +310,42 @@ export default {
         // 通过校区ID获取球台数据
         const courts = await this.getCourtsByCampus(campusId)
         
-        // 显示所有球台，但只允许选择AVAILABLE状态的
-        this.availableTables = courts || []
+        // 检查每个球台在选定时间段的可用性
+        const startDateTime = `${this.selectedTimeRange.startDate} ${this.selectedTimeRange.startTime}`
+        const endDateTime = `${this.selectedTimeRange.startDate} ${this.selectedTimeRange.endTime}`
         
-        console.log('获取到的球台数据:', this.availableTables)
+        // 并行检查所有球台的可用性
+        const courtsWithAvailability = await Promise.all(
+          courts.map(async (court) => {
+            // 跳过维修状态的球台
+            if (court.status === 'MAINTENANCE') {
+              return court
+            }
+            
+            // 检查球台在选定时间段是否可用
+            const isAvailable = await this.checkCourtAvailability(
+              court.id,
+              startDateTime,
+              endDateTime
+            )
+            
+            return {
+              ...court,
+              // 如果球台在选定时间段被占用，则标记为占用状态
+              status: isAvailable ? court.status : 'OCCUPIED',
+              // 添加可用性标记，用于前端显示
+              availableInTimeRange: isAvailable
+            }
+          })
+        )
+        
+        this.availableTables = courtsWithAvailability || []
+        console.log('获取到的球台数据（含可用性检查）:', this.availableTables)
       } catch (error) {
         console.error('获取球台数据失败:', error)
         this.$message.error('获取球台数据失败')
+      } finally {
+        this.loadingTables = false
       }
     },
     isDateAvailable(date) {
@@ -304,13 +371,23 @@ export default {
       }
     },
     autoAssignTable() {
-      const availableTable = this.availableTables.find(table => table.status === 'AVAILABLE')
-      if (availableTable) {
-        this.selectedTable = availableTable
-        this.$message.success(`已为您自动分配球台: ${availableTable.courtNumber || availableTable.name}`)
+      // 获取所有可用的球台
+      const availableTables = this.availableTables.filter(table => table.status === 'AVAILABLE')
+      
+      if (availableTables.length > 0) {
+        // 随机选择一个可用的球台
+        const randomIndex = Math.floor(Math.random() * availableTables.length)
+        const selectedTable = availableTables[randomIndex]
+        
+        this.selectedTable = selectedTable
+        this.$message.success(`已为您自动分配球台: ${selectedTable.courtNumber || selectedTable.name}`)
       } else {
         this.$message.warning('暂无可用球台')
       }
+    },
+    
+    hasAvailableTable() {
+      return this.availableTables.some(table => table.status === 'AVAILABLE')
     },
     
     getStatusClass(status) {
@@ -551,18 +628,32 @@ export default {
 
 .table-item {
   cursor: pointer;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .table-number {
   font-size: 18px;
   font-weight: bold;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
+  line-height: 1.2;
 }
 
 .table-status {
   font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 10px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+.status-hint {
+  font-size: 11px;
+  color: #909399;
+  margin-top: 2px;
+  line-height: 1.2;
 }
 
 .table-status.AVAILABLE {
@@ -598,5 +689,18 @@ export default {
 .el-card[disabled] {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* 统一卡片高度 */
+.el-card {
+  height: 100%;
+  transition: all 0.3s ease;
+}
+
+.el-card__body {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

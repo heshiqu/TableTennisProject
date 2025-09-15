@@ -121,6 +121,14 @@ export function resetAdminPassword(adminId) {
   })
 }
 
+// 更新用户密码（学生和教练通用）
+export function updatePassword(userId, oldPassword, newPassword) {
+  return request({
+    url: `/api/users/${userId}/password?oldPassword=${encodeURIComponent(oldPassword)}&newPassword=${encodeURIComponent(newPassword)}`,
+    method: 'patch'
+  })
+}
+
 // 获取校区列表（用于下拉选择）
 export function getCampuses(params) {
   return request({

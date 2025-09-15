@@ -151,9 +151,8 @@
 
 <script>
 import { getCoachInfo } from '@/api/coach'
-import { updateUserInfo } from '@/api/user'
+import { updateUserInfo, updatePassword } from '@/api/user'
 import { getCampusList } from '@/api/system'
-import { updatePassword } from '@/api/coach'
 import { uploadAvatar } from '@/api/upload'
 
 export default {
@@ -428,10 +427,10 @@ export default {
           }
           
           const response = await updatePassword(
-            coachId,
-            this.passwordForm.currentPassword,
-            this.passwordForm.newPassword
-          )
+        coachId,
+        this.passwordForm.currentPassword,
+        this.passwordForm.newPassword
+      )
           
           if (response.code === 200) {
             this.$message.success('密码修改成功，请重新登录')

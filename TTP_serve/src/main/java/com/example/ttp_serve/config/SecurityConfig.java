@@ -106,7 +106,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList("http://localhost:9528")); // 允许前端地址
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS")); // 允许的方法
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS","PATCH")); // 允许的方法
         configuration.setAllowedHeaders(Arrays.asList("Content-Type", "Authorization")); // 允许的请求头
         configuration.setAllowCredentials(true); // 允许凭证信息
 

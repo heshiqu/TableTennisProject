@@ -133,12 +133,8 @@ export function updateCoachInfo(coachId, data) {
 // 教练修改密码
 export function updatePassword(coachId, currentPassword, newPassword) {
   return request({
-    url: `/api/coaches/${coachId}/password`,
-    method: 'put',
-    data: {
-      currentPassword,
-      newPassword
-    }
+    url: `/api/users/${coachId}/password?oldPassword=${encodeURIComponent(currentPassword)}&newPassword=${encodeURIComponent(newPassword)}`,
+    method: 'patch'
   })
 }
 

@@ -23,4 +23,11 @@ public interface StudentService {
      * @return 学生实体
      */
     Student getStudentById(Long studentId);
+
+    /**
+     * 根据学生ID获取本月取消次数
+     * @param studentId 学生ID
+     * @return 本月取消次数
+     */
+    Integer getCurrentMonthCancelCount(Long studentId);
 }

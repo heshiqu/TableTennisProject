@@ -25,11 +25,14 @@ export function bookCourse(data) {
   })
 }
 
-export function cancelCourse(courseId, reason) {
+export function cancelCourse(courseId, reason, cancelledBy) {
   return request({
     url: `/api/courses/${courseId}/cancel`,
     method: 'post',
-    data: { reason }
+    params: { 
+      reason: reason,
+      cancelledBy: cancelledBy
+    }
   })
 }
 
@@ -174,6 +177,14 @@ export function getCoachPendingBookings(coachId, status) {
 export function getCoachMonthlyIncome(coachId) {
   return request({
     url: `/api/courses/coach/${coachId}/monthly-income`,
+    method: 'get'
+  })
+}
+
+// 获取学生本月取消次数
+export function getStudentMonthlyCancelCount(studentId) {
+  return request({
+    url: `/api/students/${studentId}/cancel-count`,
     method: 'get'
   })
 }
