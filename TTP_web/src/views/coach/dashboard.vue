@@ -67,12 +67,17 @@
             <i class="el-icon-date"></i>
             <p>今日暂无课程安排</p>
           </div>
-          <div v-else>
-            <div v-for="course in todaySchedule" :key="course.id" class="schedule-item">
-              <div class="schedule-time">{{ course.startTime }} - {{ course.endTime }}</div>
-              <div class="schedule-info">
-                <span class="student-name">学员：{{ course.studentName }}</span>
-                <span class="table-info">球台：{{ course.tableNumber }}</span>
+          <div v-else class="schedule-container">
+            <div class="schedule-scroll">
+              <div v-for="course in todaySchedule" :key="course.id" class="schedule-item">
+                <div class="schedule-time">{{ course.startTime }} - {{ course.endTime }}</div>
+                <div class="schedule-info">
+                  <span class="student-name">学员：{{ course.studentName }}</span>
+                  <span class="table-info">球台：{{ course.tableNumber }}</span>
+                  <span class="status-info" :class="'status-' + course.status.toLowerCase()">
+                    {{ getStatusText(course.status) }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -84,18 +89,17 @@
             <span>待处理预约</span>
             <el-button style="float: right; padding: 3px 0" type="text" @click="goToBookings">查看全部</el-button>
           </div>
-          <div v-if="pendingBookingsList.length === 0" class="empty-bookings">
-            <i class="el-icon-bell"></i>
-            <p>暂无待处理预约</p>
-          </div>
-          <div v-else>
-            <div v-for="booking in pendingBookingsList.slice(0, 3)" :key="booking.id" class="booking-item">
-              <div class="booking-time">{{ booking.date }} {{ booking.timeSlot }}</div>
-              <div class="booking-info">
-                <span class="student-name">学员：{{ booking.studentName }}</span>
-                <div class="booking-actions">
-                  <el-button size="mini" type="success" @click="confirmBooking(booking.id)">接受</el-button>
-                  <el-button size="mini" type="danger" @click="rejectBooking(booking.id)">拒绝</el-button>
+          <div class="bookings-container">
+            <div v-if="pendingBookingsList.length === 0" class="empty-bookings">
+              <i class="el-icon-document"></i>
+              <p>暂无待处理预约</p>
+            </div>
+            <div v-else class="bookings-scroll">
+              <div v-for="booking in pendingBookingsList" :key="booking.id" class="booking-item">
+                <div class="booking-time">{{ booking.date }} {{ booking.timeSlot }}</div>
+                <div class="booking-info">
+                  <span class="student-name">学员：{{ booking.studentName }}</span>
+                  <span class="table-info">球台：{{ booking.courtNumber }}</span>
                 </div>
               </div>
             </div>
@@ -126,7 +130,7 @@
 import { mapGetters } from 'vuex'
 import CountTo from 'vue-count-to'
 import { getCoachStudentCount } from '@/api/coach'
-import { getCoachCourses, getCancellationStats } from '@/api/course'
+import { getCoachCoursesByDateRange, getCoachPendingBookings, getCoachMonthlyIncome } from '@/api/course'
 import { getSystemMessages } from '@/api/system'
 
 export default {
@@ -154,9 +158,12 @@ export default {
   },
   methods: {
     async loadDashboardData() {
+      console.log('开始加载教练仪表盘数据...')
       try {
         // 获取学员数量
         const coachId = this.$store.state.user.user?.id
+        console.log('当前教练ID:', coachId)
+        
         if (coachId) {
           const countRes = await getCoachStudentCount(coachId)
           this.studentCount = countRes.data || 0
@@ -168,266 +175,402 @@ export default {
         // 获取待处理预约
         this.loadPendingBookings()
 
-        // 获取系统通知
-        const messagesRes = await getSystemMessages({ page: 1, size: 5 })
-        this.notifications = messagesRes.data.records || []
-
-        // 计算本月收入
-        this.calculateMonthlyIncome()
+        // 获取本月收入
+        console.log('即将调用loadMonthlyIncome...')
+        await this.loadMonthlyIncome()
+        console.log('loadMonthlyIncome调用完成')
       } catch (error) {
         console.error('加载仪表盘数据失败:', error)
       }
     },
 
     loadTodaySchedule() {
-      // 模拟今日课程数据
-      this.todaySchedule = [
-        {
-          id: 1,
-          startTime: '09:00',
-          endTime: '10:30',
-          studentName: '小明',
-          tableNumber: 'A1'
-        },
-        {
-          id: 2,
-          startTime: '14:00',
-          endTime: '15:30',
-          studentName: '小红',
-          tableNumber: 'B2'
+      // 获取今日课程数据
+      const today = new Date()
+      const start = new Date(today)
+      start.setHours(0, 0, 0, 0)
+      const end = new Date(today)
+      end.setHours(23, 59, 59, 999)
+      
+      const coachId = this.$store.state.user.user?.id
+      if (!coachId) {
+        console.error('无法获取教练ID')
+        return
+      }
+
+      getCoachCoursesByDateRange(coachId, start, end)
+        .then(response => {
+          if (response.code === 200 && response.data) {
+            this.todaySchedule = response.data
+              .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+              .map(course => ({
+                id: course.id,
+                startTime: course.startTime.slice(11, 16),
+                endTime: course.endTime.slice(11, 16),
+                studentName: course.studentName,
+                tableNumber: course.courtNumber,
+                status: course.status
+              }))
+            this.todayCourses = this.todaySchedule.length
+          } else {
+            this.todaySchedule = []
+            this.todayCourses = 0
+          }
+        })
+        .catch(error => {
+          console.error('获取今日课程失败:', error)
+          this.todaySchedule = []
+          this.todayCourses = 0
+        })
+    },
+
+    async loadPendingBookings() {
+      try {
+        const coachId = this.$store.state.user.user?.id
+        if (!coachId) {
+          console.error('无法获取教练ID')
+          return
         }
-      ]
-      this.todayCourses = this.todaySchedule.length
-    },
 
-    loadPendingBookings() {
-      // 模拟待处理预约数据
-      this.pendingBookingsList = [
-        {
-          id: 1,
-          date: '2024-01-15',
-          timeSlot: '10:00-11:30',
-          studentName: '小刚'
+        const response = await getCoachPendingBookings(coachId, 'PENDING')
+        if (response.code === 200 && response.data) {
+          this.pendingBookingsList = response.data.map(booking => ({
+            id: booking.id,
+            date: booking.startTime.slice(0, 10),
+            timeSlot: `${booking.startTime.slice(11, 16)}-${booking.endTime.slice(11, 16)}`,
+            studentName: booking.studentName,
+            courtNumber: booking.courtNumber,
+            startTime: booking.startTime,
+            endTime: booking.endTime
+          }))
+          this.pendingBookings = this.pendingBookingsList.length
+        } else {
+          this.pendingBookingsList = []
+          this.pendingBookings = 0
         }
-      ]
-      this.pendingBookings = this.pendingBookingsList.length
+      } catch (error) {
+        console.error('获取待确认预约失败:', error)
+        this.pendingBookingsList = []
+        this.pendingBookings = 0
+      }
     },
 
-    calculateMonthlyIncome() {
-      // 模拟计算本月收入
-      this.monthlyIncome = 12500
-    },
+    async loadMonthlyIncome() {
+      console.log('开始加载教练本月收入...')
+      try {
+        const coachId = this.$store.state.user.user?.id
+        if (!coachId) {
+          console.error('无法获取教练ID')
+          return
+        }
 
-    confirmBooking(bookingId) {
-      this.$message.success('预约已确认')
-      this.loadPendingBookings()
-    },
-
-    rejectBooking(bookingId) {
-      this.$prompt('请输入拒绝原因', '拒绝预约', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        inputPattern: /^.{2,100}$/,
-        inputErrorMessage: '请输入2-100个字符的拒绝原因'
-      }).then(({ value }) => {
-        this.$message.success('预约已拒绝')
-        this.loadPendingBookings()
-      })
+        console.log('正在请求本月收入，教练ID:', coachId)
+        const response = await getCoachMonthlyIncome(coachId)
+        console.log('本月收入API响应:', response)
+        
+        if (response.code === 200 && response.data !== undefined) {
+          this.monthlyIncome = response.data
+          console.log('本月收入设置成功:', this.monthlyIncome)
+        } else {
+          this.monthlyIncome = 0
+          console.log('本月收入数据无效，设置为0')
+        }
+      } catch (error) {
+        console.error('获取本月收入失败:', error)
+        this.monthlyIncome = 0
+      }
     },
 
     goToStudents() {
-      this.$router.push('/coach/students')
+      this.$router.push('/coach-students')
     },
     goToSetSchedule() {
-      this.$router.push('/coach/schedule')
+      this.$router.push('/coach-schedule')
     },
     goToEvaluations() {
-      this.$router.push('/coach/evaluations')
+      this.$router.push('/coach-training-records')
     },
     goToStatistics() {
-      this.$router.push('/coach/statistics')
+      this.$router.push('/coach-training-records')
     },
     goToBookings() {
-      this.$router.push('/coach/bookings')
+      this.$router.push('/coach-appointments')
     },
     goToSchedule() {
-      this.$router.push('/coach/schedule')
-    }
+      this.$router.push('/coach-schedule')
+    },
+    getStatusText(status) {
+      const statusMap = {
+        'PENDING': '待确认',
+        'CONFIRMED': '已确认',
+        'COMPLETED': '已完成',
+        'CANCELLED': '已取消'
+      }
+      return statusMap[status] || status
+    },
   }
 }
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .dashboard-container {
-  padding: 32px;
-  background-color: rgb(240, 242, 245);
-  min-height: calc(100vh - 84px);
+  padding: 20px;
 }
 
 .dashboard-text {
-  margin-bottom: 32px;
-  
-  h2 {
-    font-size: 28px;
-    font-weight: bold;
-    color: #303133;
-    margin-bottom: 8px;
-  }
-  
-  p {
-    font-size: 16px;
-    color: #606266;
-  }
+  margin-bottom: 20px;
+}
+
+.dashboard-text h2 {
+  font-size: 24px;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.dashboard-text p {
+  font-size: 14px;
+  color: #666;
 }
 
 .panel-group {
   margin-top: 18px;
+}
 
-  .card-panel-col {
-    margin-bottom: 32px;
-  }
+.card-panel-col {
+  margin-bottom: 32px;
+}
 
-  .card-panel {
-    height: 108px;
-    cursor: pointer;
-    font-size: 12px;
-    position: relative;
-    overflow: hidden;
-    color: #666;
-    background: #fff;
-    box-shadow: 4px 4px 40px rgba(0, 0, 0, .05);
-    border-color: rgba(0, 0, 0, .05);
+.card-panel {
+  height: 108px;
+  cursor: pointer;
+  font-size: 12px;
+  position: relative;
+  overflow: hidden;
+  color: #666;
+  background: #fff;
+  box-shadow: 4px 4px 40px rgba(0, 0, 0, .05);
+  border-color: rgba(0, 0, 0, .05);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  padding: 20px;
+}
 
-    &:hover {
-      .card-panel-icon-wrapper {
-        color: #fff;
-      }
+.card-panel:hover .card-panel-icon-wrapper {
+  color: #fff;
+}
 
-      .icon-people {
-        background: #36a3f7;
-      }
+.card-panel-icon-wrapper {
+  float: left;
+  margin: 14px 0 0 14px;
+  padding: 16px;
+  transition: all 0.38s ease-out;
+  border-radius: 6px;
+}
 
-      .icon-message {
-        background: #f4516c;
-      }
+.card-panel-icon {
+  float: left;
+  font-size: 48px;
+}
 
-      .icon-star {
-        background: #34bfa3;
-      }
+.card-panel-description {
+  float: right;
+  font-weight: bold;
+  margin-left: 0px;
+  flex: 1;
+  text-align: right;
+}
 
-      .icon-money {
-        background: #40c9c6;
-      }
-    }
+.card-panel-text {
+  line-height: 18px;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 16px;
+  margin-bottom: 12px;
+}
 
-    .icon-people {
-      color: #36a3f7;
-    }
+.card-panel-num {
+  font-size: 20px;
+  color: #666;
+}
 
-    .icon-message {
-      color: #f4516c;
-    }
+.card-panel-unit {
+  font-size: 14px;
+  color: #999;
+  margin-left: 4px;
+}
 
-    .icon-star {
-      color: #34bfa3;
-    }
+.icon-people {
+  color: #40c9c6;
+}
 
-    .icon-money {
-      color: #40c9c6;
-    }
+.icon-message {
+  color: #36a3f7;
+}
 
-    .card-panel-icon-wrapper {
-      float: left;
-      margin: 14px 0 0 14px;
-      padding: 16px;
-      transition: all 0.38s ease-out;
-      border-radius: 6px;
-    }
+.icon-star {
+  color: #f4516c;
+}
 
-    .card-panel-icon {
-      float: left;
-      font-size: 48px;
-    }
-
-    .card-panel-description {
-      float: right;
-      font-weight: bold;
-      margin: 26px;
-      margin-left: 0px;
-
-      .card-panel-text {
-        line-height: 18px;
-        color: rgba(0, 0, 0, 0.45);
-        font-size: 16px;
-        margin-bottom: 12px;
-      }
-
-      .card-panel-num {
-        font-size: 20px;
-      }
-
-      .card-panel-unit {
-        font-size: 16px;
-        color: #606266;
-        margin-left: 4px;
-      }
-    }
-  }
+.icon-money {
+  color: #34bfa3;
 }
 
 .box-card {
   margin-bottom: 20px;
 }
 
-.empty-schedule,
-.empty-bookings {
-  text-align: center;
-  padding: 40px 0;
-  color: #909399;
-  
-  i {
-    font-size: 48px;
-    margin-bottom: 16px;
-  }
+.schedule-container,
+.bookings-container {
+  max-height: 180px; /* 显示3个项目的高度 */
+  overflow: hidden;
+}
+
+.schedule-scroll,
+.bookings-scroll {
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 5px; /* 为滚动条预留空间 */
+}
+
+.schedule-scroll::-webkit-scrollbar,
+.bookings-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.schedule-scroll::-webkit-scrollbar-track,
+.bookings-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.schedule-scroll::-webkit-scrollbar-thumb,
+.bookings-scroll::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.schedule-scroll::-webkit-scrollbar-thumb:hover,
+.bookings-scroll::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .schedule-item,
 .booking-item {
   padding: 12px 0;
   border-bottom: 1px solid #eee;
-  
-  &:last-child {
-    border-bottom: none;
-  }
-  
-  .schedule-time,
-  .booking-time {
-    font-weight: bold;
-    color: #303133;
-    margin-bottom: 4px;
-  }
-  
-  .schedule-info,
-  .booking-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: #606266;
-    font-size: 14px;
-    
-    .booking-actions {
-      display: flex;
-      gap: 8px;
-    }
-  }
+}
+
+.schedule-item:last-child,
+.booking-item:last-child {
+  border-bottom: none;
+}
+
+.schedule-time,
+.booking-time {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.schedule-info,
+.booking-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.student-name,
+.table-info {
+  color: #666;
+  font-size: 14px;
+}
+
+.status-info {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 8px;
+}
+
+.status-pending {
+  background-color: #fdf6ec;
+  color: #e6a23c;
+  border: 1px solid #f5dab1;
+}
+
+.status-confirmed {
+  background-color: #f0f9ff;
+  color: #409eff;
+  border: 1px solid #b3d8ff;
+}
+
+.status-completed {
+  background-color: #f0f9ff;
+  color: #67c23a;
+  border: 1px solid #b3d8ff;
+}
+
+.status-cancelled {
+  background-color: #fef0f0;
+  color: #f56c6c;
+  border: 1px solid #fab6b6;
+}
+
+.empty-schedule,
+.empty-bookings {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+}
+
+.empty-schedule i,
+.empty-bookings i {
+  font-size: 48px;
+  margin-bottom: 10px;
 }
 
 .quick-actions {
-  text-align: center;
-  padding: 20px 0;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.quick-actions .el-button {
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .card-panel {
+    height: auto;
+    padding: 15px;
+  }
   
-  .el-button {
-    margin: 0 10px;
+  .card-panel-icon-wrapper {
+    display: none;
+  }
+  
+  .card-panel-description {
+    text-align: center;
+  }
+  
+  .schedule-container,
+  .bookings-container {
+    max-height: none; /* 移动端不限制高度 */
+  }
+  
+  .schedule-scroll,
+  .bookings-scroll {
+    max-height: none;
+    overflow-y: visible;
+  }
+  
+  .quick-actions {
+    flex-direction: column;
+  }
+  
+  .quick-actions .el-button {
+    width: 100%;
   }
 }
 </style>

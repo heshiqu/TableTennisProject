@@ -33,13 +33,6 @@
             </el-date-picker>
           </el-form-item>
           
-          <el-form-item label="状态">
-            <el-select v-model="filterForm.status" clearable placeholder="选择状态">
-              <el-option label="已完成" value="COMPLETED"></el-option>
-              <el-option label="已取消" value="CANCELLED"></el-option>
-            </el-select>
-          </el-form-item>
-          
           <el-form-item>
             <el-button type="primary" @click="handleFilter">查询</el-button>
             <el-button @click="resetFilter">重置</el-button>
@@ -81,37 +74,46 @@
       <div class="training-list" v-loading="loading">
         <div v-if="trainingRecords.length > 0">
           <el-table :data="trainingRecords" style="width: 100%" border>
-            <el-table-column prop="studentName" label="学员姓名" width="120"></el-table-column>
-            <el-table-column prop="date" label="日期" width="120">
+            <el-table-column prop="studentName" label="学员姓名" min-width="120"></el-table-column>
+            <el-table-column prop="startTime" label="训练时间" min-width="180">
               <template slot-scope="scope">
-                {{ scope.row.date | formatDate }}
+                {{ formatDateTime(scope.row.startTime) }}
               </template>
             </el-table-column>
-            <el-table-column prop="timeSlot" label="时间段" width="120"></el-table-column>
-            <el-table-column prop="tableName" label="球台" width="100"></el-table-column>
-            <el-table-column prop="duration" label="时长(小时)" width="100"></el-table-column>
-            <el-table-column prop="fee" label="课时费" width="100">
+            <el-table-column prop="courtNumber" label="球台" min-width="100"></el-table-column>
+            <el-table-column prop="duration" label="时长(小时)" min-width="80"></el-table-column>
+            <el-table-column prop="fee" label="课时费" min-width="80">
               <template slot-scope="scope">
                 ¥{{ scope.row.fee }}
               </template>
             </el-table-column>
-            <el-table-column prop="status" label="状态" width="100">
+            <el-table-column label="学生评价" min-width="150">
               <template slot-scope="scope">
-                <el-tag :type="getStatusType(scope.row.status)" size="mini">
-                  {{ getStatusText(scope.row.status) }}
-                </el-tag>
+                <div v-if="scope.row.studentComment" style="display: flex; flex-direction: column; gap: 4px;">
+                  <el-rate 
+                    v-model="scope.row.studentRating" 
+                    disabled 
+                    text-color="#ff9900">
+                  </el-rate>
+                  <div class="comment-text">{{ scope.row.studentComment }}</div>
+                </div>
+                <span v-else>未评价</span>
               </template>
             </el-table-column>
-            <el-table-column prop="evaluationStatus" label="评价状态" width="100">
+            <el-table-column label="教练评价" min-width="150">
               <template slot-scope="scope">
-                <el-tag 
-                  :type="scope.row.evaluationStatus ? 'success' : 'warning'" 
-                  size="mini">
-                  {{ scope.row.evaluationStatus ? '已评价' : '待评价' }}
-                </el-tag>
+                <div v-if="scope.row.coachComment" style="display: flex; flex-direction: column; gap: 4px;">
+                  <el-rate 
+                    v-model="scope.row.coachRating" 
+                    disabled 
+                    text-color="#ff9900">
+                  </el-rate>
+                  <div class="comment-text">{{ scope.row.coachComment }}</div>
+                </div>
+                <span v-else>未评价</span>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="200" fixed="right">
+            <el-table-column label="操作" min-width="100" fixed="right">
               <template slot-scope="scope">
                 <el-button 
                   type="text" 
@@ -119,25 +121,16 @@
                   @click="viewTrainingDetail(scope.row)">
                   详情
                 </el-button>
-                <el-button 
-                  v-if="scope.row.status === 'COMPLETED' && !scope.row.evaluationStatus"
-                  type="text" 
-                  size="mini" 
-                  @click="createEvaluation(scope.row)">
-                  评价学员
-                </el-button>
-                <el-button 
-                  v-if="scope.row.evaluationStatus"
-                  type="text" 
-                  size="mini" 
-                  @click="viewEvaluation(scope.row)">
-                  查看评价
-                </el-button>
               </template>
             </el-table-column>
           </el-table>
         </div>
-        <el-empty v-else description="暂无训练记录"></el-empty>
+        <div v-else-if="!loading" class="empty-container">
+          <div class="empty-content">
+            <i class="el-icon-document" style="font-size: 48px; color: #909399;"></i>
+            <p style="color: #909399; margin-top: 16px;">暂无训练记录</p>
+          </div>
+        </div>
       </div>
 
       <!-- 分页 -->
@@ -162,21 +155,66 @@
       <div v-if="selectedTraining" class="training-detail">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="学员姓名">{{ selectedTraining.studentName }}</el-descriptions-item>
-          <el-descriptions-item label="联系电话">{{ selectedTraining.studentPhone }}</el-descriptions-item>
+          <el-descriptions-item label="学员ID">{{ selectedTraining.studentId }}</el-descriptions-item>
           
-          <el-descriptions-item label="训练日期">{{ selectedTraining.date | formatDate }}</el-descriptions-item>
-          <el-descriptions-item label="时间段">{{ selectedTraining.timeSlot }}</el-descriptions-item>
+          <el-descriptions-item label="训练时间">{{ formatDateTime(selectedTraining.startTime) }}</el-descriptions-item>
+          <el-descriptions-item label="球台">{{ selectedTraining.courtNumber }}</el-descriptions-item>
           
-          <el-descriptions-item label="球台">{{ selectedTraining.tableName }}</el-descriptions-item>
           <el-descriptions-item label="训练时长">{{ selectedTraining.duration }}小时</el-descriptions-item>
-          
           <el-descriptions-item label="课时费">¥{{ selectedTraining.fee }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
-            <el-tag :type="getStatusType(selectedTraining.status)" size="mini">
-              {{ getStatusText(selectedTraining.status) }}
-            </el-tag>
-          </el-descriptions-item>
         </el-descriptions>
+        
+        <!-- 学生评价（学生对教练的评价） -->
+        <div v-if="selectedTraining.studentComment" class="detail-comments">
+          <h4>学生评价：</h4>
+          <div class="rating-display">
+            <el-rate 
+              v-model="selectedTraining.studentRating" 
+              disabled 
+              text-color="#ff9900">
+            </el-rate>
+          </div>
+          <p>{{ selectedTraining.studentComment }}</p>
+        </div>
+        
+        <!-- 教练评价（教练对学生的评价） -->
+        <div class="detail-comments">
+          <h4>教练评价：</h4>
+          <div v-if="selectedTraining.coachComment">
+            <!-- 已有评价，只读显示 -->
+            <div class="rating-display">
+              <el-rate 
+                v-model="selectedTraining.coachRating" 
+                disabled 
+                text-color="#ff9900">
+              </el-rate>
+            </div>
+            <p>{{ selectedTraining.coachComment }}</p>
+          </div>
+          <div v-else>
+            <!-- 没有评价，可以编辑 -->
+            <el-form :model="coachEvaluationForm" label-width="80px">
+              <el-form-item label="星级评分">
+                <el-rate 
+                  v-model="coachEvaluationForm.rating" 
+                  :max="5"
+                  text-color="#ff9900">
+                </el-rate>
+              </el-form-item>
+              <el-form-item label="评价内容">
+                <el-input
+                  type="textarea"
+                  v-model="coachEvaluationForm.content"
+                  :rows="3"
+                  placeholder="请输入对学生的评价">
+                </el-input>
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="submitCoachEvaluation">提交评价</el-button>
+              </el-form-item>
+            </el-form>
+          </div>
+        </div>
         
         <div v-if="selectedTraining.cancelReason" class="detail-cancel">
           <h4>取消原因：</h4>
@@ -184,110 +222,12 @@
         </div>
       </div>
     </el-dialog>
-
-    <!-- 评价学员对话框 -->
-    <el-dialog 
-      title="评价学员" 
-      :visible.sync="evaluationDialogVisible" 
-      width="50%">
-      <el-form :model="evaluationForm" label-width="100px" :rules="evaluationRules" ref="evaluationForm">
-        <el-form-item label="学员表现" prop="coachComment">
-          <el-input 
-            type="textarea" 
-            v-model="evaluationForm.coachComment" 
-            :rows="4" 
-            placeholder="请评价学员本次训练的表现">
-          </el-input>
-        </el-form-item>
-        
-        <el-form-item label="改进建议" prop="coachSuggestion">
-          <el-input 
-            type="textarea" 
-            v-model="evaluationForm.coachSuggestion" 
-            :rows="3" 
-            placeholder="请给出学员的改进建议">
-          </el-input>
-        </el-form-item>
-        
-        <el-form-item label="训练标签" prop="tags">
-          <el-select 
-            v-model="evaluationForm.tags" 
-            multiple 
-            filterable 
-            allow-create 
-            placeholder="请选择或输入训练标签">
-            <el-option label="基础扎实" value="基础扎实"></el-option>
-            <el-option label="进步明显" value="进步明显"></el-option>
-            <el-option label="需要加强" value="需要加强"></el-option>
-            <el-option label="态度认真" value="态度认真"></el-option>
-            <el-option label="技术娴熟" value="技术娴熟"></el-option>
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <span slot="footer" class="dialog-footer">
-        <el-button @click="evaluationDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitEvaluation">提交评价</el-button>
-      </span>
-    </el-dialog>
-
-    <!-- 查看评价对话框 -->
-    <el-dialog 
-      title="训练评价" 
-      :visible.sync="viewEvaluationDialogVisible" 
-      width="50%">
-      <div v-if="selectedEvaluation" class="evaluation-view">
-        <el-descriptions :column="1" border>
-          <el-descriptions-item label="学员姓名">{{ selectedEvaluation.studentName }}</el-descriptions-item>
-          <el-descriptions-item label="训练日期">{{ selectedEvaluation.date | formatDate }}</el-descriptions-item>
-        </el-descriptions>
-        
-        <el-divider>教练评价</el-divider>
-        <div class="evaluation-content">
-          <h4>学员表现：</h4>
-          <p>{{ selectedEvaluation.coachComment || '暂无评价' }}</p>
-          
-          <h4>改进建议：</h4>
-          <p>{{ selectedEvaluation.coachSuggestion || '暂无建议' }}</p>
-          
-          <div v-if="selectedEvaluation.coachTags && selectedEvaluation.coachTags.length" class="evaluation-tags">
-            <h4>训练标签：</h4>
-            <el-tag 
-              v-for="tag in selectedEvaluation.coachTags" 
-              :key="tag" 
-              size="small" 
-              type="info">
-              {{ tag }}
-            </el-tag>
-          </div>
-        </div>
-        
-        <el-divider>学员反馈</el-divider>
-        <div class="evaluation-content">
-          <h4>训练收获：</h4>
-          <p>{{ selectedEvaluation.studentComment || '暂无反馈' }}</p>
-          
-          <h4>训练建议：</h4>
-          <p>{{ selectedEvaluation.studentSuggestion || '暂无建议' }}</p>
-          
-          <div v-if="selectedEvaluation.studentTags && selectedEvaluation.studentTags.length" class="evaluation-tags">
-            <h4>学员标签：</h4>
-            <el-tag 
-              v-for="tag in selectedEvaluation.studentTags" 
-              :key="tag" 
-              size="small" 
-              type="info">
-              {{ tag }}
-            </el-tag>
-          </div>
-        </div>
-      </div>
-    </el-dialog>
   </div>
 </template>
 
 <script>
-import { getCoachTrainingRecords, createEvaluation } from '@/api/coach'
-import { getMyStudents } from '@/api/coach'
+import { getCoachCompletedCourses, getCoachApprovedStudents, getCourseEvaluations, createEvaluation } from '@/api/coach'
+import { mapGetters } from 'vuex'
 
 export default {
   name: 'CoachTrainingRecords',
@@ -296,30 +236,11 @@ export default {
       trainingRecords: [],
       studentList: [],
       selectedTraining: null,
-      selectedEvaluation: null,
       detailDialogVisible: false,
-      evaluationDialogVisible: false,
-      viewEvaluationDialogVisible: false,
       loading: false,
       filterForm: {
         studentId: '',
-        dateRange: [],
-        status: ''
-      },
-      evaluationForm: {
-        trainingId: '',
-        coachComment: '',
-        coachSuggestion: '',
-        tags: []
-      },
-      evaluationRules: {
-        coachComment: [
-          { required: true, message: '请输入学员表现评价', trigger: 'blur' },
-          { min: 10, max: 500, message: '长度在 10 到 500 个字符', trigger: 'blur' }
-        ],
-        coachSuggestion: [
-          { max: 500, message: '长度不超过 500 个字符', trigger: 'blur' }
-        ]
+        dateRange: []
       },
       page: {
         current: 1,
@@ -331,14 +252,15 @@ export default {
         completed: 0,
         totalHours: 0,
         totalIncome: 0
+      },
+      coachEvaluationForm: {
+        rating: 0,
+        content: ''
       }
     }
   },
-  filters: {
-    formatDate(date) {
-      if (!date) return ''
-      return new Date(date).toLocaleDateString('zh-CN')
-    }
+  computed: {
+    ...mapGetters(['userId'])
   },
   created() {
     this.loadTrainingRecords()
@@ -348,21 +270,65 @@ export default {
     async loadTrainingRecords() {
       this.loading = true
       try {
+        // 构建查询参数
         const params = {
-          current: this.page.current,
-          size: this.page.size,
-          studentId: this.filterForm.studentId,
-          startDate: this.filterForm.dateRange?.[0] || '',
-          endDate: this.filterForm.dateRange?.[1] || '',
-          status: this.filterForm.status
+          studentId: this.filterForm.studentId || undefined,
+          startDate: this.filterForm.dateRange?.[0] || undefined,
+          endDate: this.filterForm.dateRange?.[1] || undefined
         }
         
-        const response = await getCoachTrainingRecords(params)
-        this.trainingRecords = response.data.records || []
-        this.total = response.data.total || 0
+        const response = await getCoachCompletedCourses(this.userId, params)
         
-        // 计算统计信息
-        this.calculateStats()
+        if (response.code === 200 && response.data) {
+          // 获取所有课程记录
+          let records = response.data
+          
+          // 为每个课程获取评价信息
+          const recordsWithEvaluations = await Promise.all(
+            records.map(async (record) => {
+              try {
+                const evalResponse = await getCourseEvaluations(record.id)
+                if (evalResponse.code === 200 && evalResponse.data) {
+                  const evaluations = evalResponse.data
+                  
+                  // 处理评价数据
+                  const studentEval = evaluations.find(e => e.type === 'STUDENT_TO_COACH')
+                  const coachEval = evaluations.find(e => e.type === 'COACH_TO_STUDENT')
+                  
+                  return {
+                    ...record,
+                    studentRating: studentEval?.rating || 0,
+                    studentComment: studentEval?.content || '',
+                    coachRating: coachEval?.rating || 0,
+                    coachComment: coachEval?.content || ''
+                  }
+                }
+              } catch (error) {
+                console.error(`获取课程 ${record.id} 的评价失败:`, error)
+              }
+              
+              // 如果没有评价数据，返回原始记录
+              return {
+                ...record,
+                studentRating: 0,
+                studentComment: '',
+                coachRating: 0,
+                coachComment: ''
+              }
+            })
+          )
+          
+          // 使用包含评价数据的记录
+          this.trainingRecords = recordsWithEvaluations
+          this.total = recordsWithEvaluations.length
+          
+          // 计算统计信息
+          this.calculateStats()
+        } else {
+          this.trainingRecords = []
+          this.total = 0
+          this.calculateStats()
+        }
       } catch (error) {
         console.error('获取训练记录失败:', error)
         this.$message.error('获取训练记录失败')
@@ -372,33 +338,54 @@ export default {
     },
     async loadStudents() {
       try {
-        const response = await getMyStudents()
-        this.studentList = response.data || []
+        const response = await getCoachApprovedStudents(this.userId)
+        if (response.code === 200 && response.data) {
+          this.studentList = response.data.map(item => ({
+            id: item.studentId,
+            realName: item.studentName
+          }))
+        } else {
+          this.studentList = []
+        }
       } catch (error) {
         console.error('获取学员列表失败:', error)
+        this.$message.error('获取学员列表失败')
       }
     },
     calculateStats() {
-      const completedRecords = this.trainingRecords.filter(r => r.status === 'COMPLETED')
+      const records = this.trainingRecords
       
       this.trainingStats = {
-        total: this.trainingRecords.length,
-        completed: completedRecords.length,
-        totalHours: completedRecords.reduce((sum, record) => sum + (record.duration || 0), 0),
-        totalIncome: completedRecords.reduce((sum, record) => sum + (record.fee || 0), 0)
+        total: records.length,
+        completed: records.length,
+        totalHours: records.reduce((sum, record) => sum + (record.duration || 0), 0),
+        totalIncome: records.reduce((sum, record) => sum + (record.fee || 0), 0)
       }
+    },
+    formatDateTime(dateTimeStr) {
+      if (!dateTimeStr) return ''
+      const date = new Date(dateTimeStr)
+      return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
     },
     getStatusType(status) {
       const typeMap = {
         'COMPLETED': 'success',
-        'CANCELLED': 'danger'
+        'CANCELLED': 'danger',
+        'PENDING': 'warning'
       }
       return typeMap[status] || 'info'
     },
     getStatusText(status) {
       const textMap = {
         'COMPLETED': '已完成',
-        'CANCELLED': '已取消'
+        'CANCELLED': '已取消',
+        'PENDING': '待确认'
       }
       return textMap[status] || status
     },
@@ -409,42 +396,13 @@ export default {
     resetFilter() {
       this.filterForm = {
         studentId: '',
-        dateRange: [],
-        status: ''
+        dateRange: []
       }
       this.handleFilter()
     },
     viewTrainingDetail(training) {
       this.selectedTraining = training
       this.detailDialogVisible = true
-    },
-    createEvaluation(training) {
-      this.evaluationForm = {
-        trainingId: training.id,
-        coachComment: '',
-        coachSuggestion: '',
-        tags: []
-      }
-      this.evaluationDialogVisible = true
-    },
-    async submitEvaluation() {
-      this.$refs.evaluationForm.validate(async (valid) => {
-        if (!valid) return
-        
-        try {
-          await createEvaluation(this.evaluationForm)
-          this.$message.success('评价提交成功')
-          this.evaluationDialogVisible = false
-          this.loadTrainingRecords()
-        } catch (error) {
-          console.error('提交评价失败:', error)
-          this.$message.error('提交评价失败')
-        }
-      })
-    },
-    viewEvaluation(training) {
-      this.selectedEvaluation = training
-      this.viewEvaluationDialogVisible = true
     },
     handleSizeChange(val) {
       this.page.size = val
@@ -453,16 +411,65 @@ export default {
     handleCurrentChange(val) {
       this.page.current = val
       this.loadTrainingRecords()
+    },
+    async submitCoachEvaluation() {
+      if (!this.coachEvaluationForm.rating || this.coachEvaluationForm.rating < 1 || this.coachEvaluationForm.rating > 5) {
+        this.$message.warning('请选择1-5星的评分')
+        return
+      }
+      
+      if (!this.coachEvaluationForm.content || this.coachEvaluationForm.content.trim() === '') {
+        this.$message.warning('请输入评价内容')
+        return
+      }
+      
+      try {
+        const evaluationData = {
+          courseId: this.selectedTraining.id,
+          fromUserId: this.userId,
+          toUserId: this.selectedTraining.studentId,
+          content: this.coachEvaluationForm.content.trim(),
+          rating: this.coachEvaluationForm.rating,
+          type: 'COACH_TO_STUDENT'
+        }
+        
+        const response = await createEvaluation(evaluationData)
+        
+        if (response.code === 200) {
+          this.$message.success('评价创建成功')
+          
+          // 关闭对话框
+          this.detailDialogVisible = false
+          
+          // 重置评价表单
+          this.coachEvaluationForm = {
+            rating: 0,
+            content: ''
+          }
+          
+          // 刷新训练记录列表
+          await this.loadTrainingRecords()
+        } else {
+          this.$message.error(response.message || '评价创建失败')
+        }
+      } catch (error) {
+        console.error('提交评价失败:', error)
+        this.$message.error('提交评价失败，请稍后重试')
+      }
     }
   }
 }
 </script>
 
 <style scoped>
+.app-container {
+  padding: 20px;
+}
+
 .filter-section {
   margin-bottom: 20px;
   padding: 15px;
-  background-color: #f9f9f9;
+  background-color: #f5f5f5;
   border-radius: 4px;
 }
 
@@ -474,11 +481,12 @@ export default {
   text-align: center;
   padding: 20px;
   background-color: #f8f9fa;
-  border-radius: 8px;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
 }
 
 .stat-number {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: bold;
   color: #409EFF;
   margin-bottom: 5px;
@@ -493,52 +501,80 @@ export default {
   min-height: 400px;
 }
 
+.empty-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+}
+
+.empty-content {
+  text-align: center;
+  padding: 40px;
+}
+
 .training-detail {
-  padding: 10px;
+  padding: 20px;
 }
 
 .detail-cancel {
   margin-top: 20px;
+  padding: 15px;
+  background-color: #fef0f0;
+  border-left: 4px solid #f56c6c;
+  border-radius: 4px;
 }
 
 .detail-cancel h4 {
   margin: 0 0 10px 0;
-  color: #333;
+  color: #f56c6c;
 }
 
 .detail-cancel p {
   margin: 0;
-  color: #666;
-  line-height: 1.6;
+  color: #606266;
 }
 
-.evaluation-content {
-  margin-bottom: 20px;
+.comment-text {
+  font-size: 12px;
+  color: #606266;
+  margin-top: 4px;
+  line-height: 1.4;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.evaluation-content h4 {
-  margin: 0 0 10px 0;
-  color: #333;
-  font-size: 16px;
+.detail-comments {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f0f9ff;
+  border-radius: 4px;
 }
 
-.evaluation-content p {
+.detail-comments h4 {
   margin: 0 0 15px 0;
-  color: #666;
-  line-height: 1.6;
+  color: #409EFF;
 }
 
-.evaluation-tags {
-  margin-top: 15px;
+.comment-section {
+  margin-bottom: 15px;
 }
 
-.evaluation-tags h4 {
-  margin: 0 0 10px 0;
-  color: #333;
+.comment-section h5 {
+  margin: 0 0 8px 0;
+  color: #606266;
+  font-size: 14px;
 }
 
-.evaluation-tags .el-tag {
-  margin-right: 8px;
-  margin-bottom: 4px;
+.comment-section p {
+  margin: 8px 0;
+  color: #606266;
+  line-height: 1.5;
+}
+
+.rating-display {
+  margin-bottom: 8px;
 }
 </style>

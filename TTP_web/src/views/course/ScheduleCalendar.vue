@@ -29,7 +29,8 @@
               class="course-item"
               :class="getStatusClass(course.status)">
               <div class="course-info">
-                <div class="coach-name">{{ course.coachName || course.studentName }}</div>
+                <div class="student-name" v-if="userType === 'coach'">{{ course.studentName || '待预约' }}</div>
+                <div class="coach-name" v-else>{{ course.coachName || '待预约' }}</div>
                 <div class="court-number">{{ course.courtNumber }}</div>
                 <div class="status">{{ getStatusText(course.status) }}</div>
               </div>

@@ -32,12 +32,12 @@ export function searchStudents(params) {
   })
 }
 
-// 学员选择教练
-export function selectCoach(coachId) {
+// 学员选择教练 - 使用新的申请接口
+export function selectCoach(coachId, studentId) {
   return request({
-    url: '/api/students/select-coach',
+    url: '/api/coach-student-relations/apply',
     method: 'post',
-    data: { coachId }
+    params: { coachId, studentId }
   })
 }
 

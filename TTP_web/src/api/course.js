@@ -161,3 +161,19 @@ export function adminCancelCourse(courseId) {
     method: 'post'
   })
 }
+
+// 获取教练的待确认预约
+export function getCoachPendingBookings(coachId, status) {
+  return request({
+    url: `/api/courses/coach/${coachId}/status/${status}`,
+    method: 'get'
+  })
+}
+
+// 获取教练本月收入
+export function getCoachMonthlyIncome(coachId) {
+  return request({
+    url: `/api/courses/coach/${coachId}/monthly-income`,
+    method: 'get'
+  })
+}

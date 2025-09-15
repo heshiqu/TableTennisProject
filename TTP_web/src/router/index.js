@@ -91,7 +91,7 @@ export const constantRoutes = [
     name: 'CoachSearch',
     meta: { title: '查找教练', icon: 'search', roles: ['STUDENT'] },
     children: [{
-      path: '/coach-search',
+      path: '',
       component: () => import('@/views/student/coach-search'),
       meta: { title: '查找教练', icon: 'search' }
     }]
@@ -240,17 +240,7 @@ export const constantRoutes = [
       meta: { title: '训练记录', icon: 'documentation' }
     }]
   },
-  {
-    path: '/coach-income',
-    component: Layout,
-    name: 'CoachIncome',
-    meta: { title: '收入统计', icon: 'money', roles: ['COACH'] },
-    children: [{
-      path: '/coach-income',
-      component: () => import('@/views/coach/income'),
-      meta: { title: '收入统计', icon: 'money' }
-    }]
-  },
+
 
   {
     path: '/super-admin-dashboard',

@@ -1,9 +1,9 @@
 import request from '@/utils/request'
 
 // 评价管理API
-export function createEvaluation(courseId, data) {
+export function createEvaluation(data) {
   return request({
-    url: `/api/evaluations/${courseId}`,
+    url: '/api/evaluations',
     method: 'post',
     data
   })
@@ -44,6 +44,14 @@ export function getStudentEvaluations(studentId) {
 export function getCoachEvaluations(coachId) {
   return request({
     url: `/api/evaluations/coach/${coachId}`,
+    method: 'get'
+  })
+}
+
+// 获取课程的评价信息
+export function getCourseEvaluations(courseId) {
+  return request({
+    url: `/api/evaluations/course/${courseId}`,
     method: 'get'
   })
 }

@@ -67,7 +67,7 @@
             <i class="el-icon-date"></i>
             <p>今日暂无课程安排</p>
           </div>
-          <div v-else>
+          <div v-else class="schedule-container">
             <div v-for="course in todaySchedule" :key="course.id" class="schedule-item">
               <div class="schedule-time">{{ course.startTime.slice(11, 16) }} - {{ course.endTime.slice(11, 16) }}</div>
               <div class="schedule-info">
@@ -209,9 +209,13 @@ export default {
 
           // 处理今日课程
           if (coursesRes.status === 'fulfilled') {
-            this.todaySchedule = coursesRes.value.data || []
+            const courses = coursesRes.value.data || []
+            // 按开始时间排序
+            this.todaySchedule = courses.sort((a, b) => {
+              return new Date(a.startTime) - new Date(b.startTime)
+            })
             this.todayCourses = this.todaySchedule.length
-            console.log('成功获取今日课程:', this.todaySchedule)
+            console.log('成功获取今日课程(已按时间排序):', this.todaySchedule)
           } else {
             console.error('获取今日课程失败:', coursesRes.reason)
             this.todaySchedule = []
@@ -395,6 +399,30 @@ export default {
     font-size: 48px;
     margin-bottom: 16px;
   }
+}
+
+.schedule-container {
+  max-height: 198px; /* 固定显示3个课程的高度，每个课程66px */
+  overflow-y: auto;
+  padding-right: 8px; /* 留出滚动条空间 */
+}
+
+.schedule-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.schedule-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.schedule-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.schedule-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .schedule-item {

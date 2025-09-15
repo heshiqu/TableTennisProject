@@ -57,10 +57,12 @@ public class CourseServiceImpl implements CourseService {
         course.setStartTime(courseRequest.getStartTime());
         course.setEndTime(courseRequest.getEndTime());
 
+
         // 检查时间冲突
         if (checkTimeConflict(courseRequest.getCoachId(), courseRequest.getStartTime(), courseRequest.getEndTime())) {
             throw new BusinessException("该时间段已有预约");
         }
+
 
         // 检查球台时间冲突（如果指定了球台）
         if (courseRequest.getCourtId() != null && checkCourtTimeConflict(
@@ -273,6 +275,16 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    public List<Course> getCoursesByCoachAndStatus(Long coachId, CourseStatus status) {
+        // 检查教练是否存在
+        if (!userRepository.existsById(coachId)) {
+            throw new ResourceNotFoundException("教练ID '" + coachId + "' 不存在");
+        }
+
+        return courseRepository.findByCoachIdAndStatus(coachId, status);
+    }
+
+    @Override
     public List<Course> getCoursesByStudent(Long studentId) {
         // 检查学员是否存在
         if (!userRepository.existsById(studentId)) {
@@ -382,5 +394,57 @@ public class CourseServiceImpl implements CourseService {
         // 获取已完成但未评价的课程
         return courseRepository.findByStatusAndEndTimeBeforeAndEvaluationsEmpty(
                 CourseStatus.COMPLETED, yesterday);
+    }
+
+    @Override
+    @Transactional
+    public Course rejectCourse(Long id, Long coachId, String reason) {
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("课程ID '" + id + "' 不存在"));
+
+        // 检查是否是该教练的课程
+        if (!course.getCoach().getId().equals(coachId)) {
+            throw new BusinessException("只能拒绝自己的课程预约");
+        }
+
+        // 检查课程状态是否允许拒绝（只能是待确认状态）
+        if (course.getStatus() != CourseStatus.PENDING) {
+            throw new BusinessException("只能拒绝待确认的课程预约");
+        }
+
+        // 设置取消信息
+        course.setStatus(CourseStatus.CANCELLED);
+        course.setCancelReason("教练拒绝: " + reason);
+        
+        // 获取教练信息作为取消操作者
+        User coachUser = userRepository.findById(coachId)
+                .orElseThrow(() -> new ResourceNotFoundException("教练ID '" + coachId + "' 不存在"));
+        course.setCancelBy(coachUser);
+        course.setCancelTime(LocalDateTime.now());
+        course.setUpdatedAt(LocalDateTime.now());
+
+        return courseRepository.save(course);
+    }
+
+    @Override
+    public BigDecimal getCoachMonthlyIncome(Long coachId) {
+        // 检查教练是否存在
+        if (!userRepository.existsById(coachId)) {
+            throw new ResourceNotFoundException("教练ID '" + coachId + "' 不存在");
+        }
+
+        // 获取当前月份的开始和结束时间
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startOfMonth = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusSeconds(1);
+
+        // 查询教练本月已完成的课程
+        List<Course> completedCourses = courseRepository.findByCoachIdAndStatusAndStartTimeBetween(
+                coachId, CourseStatus.COMPLETED, startOfMonth, endOfMonth);
+
+        // 计算总收入
+        return completedCourses.stream()
+                .map(Course::getFee)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

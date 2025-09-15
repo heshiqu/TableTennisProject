@@ -167,3 +167,63 @@ export function rejectStudentApplication(relationId, coachId) {
     params: { coachId }
   })
 }
+
+// 获取教练的已完成课程
+export function getCoachCompletedCourses(coachId, params = {}) {
+  return request({
+    url: `/api/courses/coach/${coachId}/status/COMPLETED`,
+    method: 'get',
+    params
+  })
+}
+
+// 获取教练的待审核课程
+export function getCoachPendingCourses(coachId) {
+  return request({
+    url: `/api/courses/coach/${coachId}/status/PENDING`,
+    method: 'get'
+  })
+}
+
+// 教练确认课程
+export function coachConfirmCourse(courseId) {
+  return request({
+    url: `/api/courses/${courseId}/confirm`,
+    method: 'post'
+  })
+}
+
+// 教练拒绝课程
+export function coachRejectCourse(courseId, coachId, reason) {
+  return request({
+    url: `/api/courses/${courseId}/reject`,
+    method: 'post',
+    params: {
+      coachId: coachId,
+      reason: reason
+    }
+  })
+}
+
+// 获取我的学员列表（当前登录教练的学员）
+export function getMyStudents() {
+  return request({
+    url: '/api/coach-student-relations/my-students',
+    method: 'get'
+  })
+}
+
+export function getCourseEvaluations(courseId) {
+  return request({
+    url: `/api/evaluations/course/${courseId}`,
+    method: 'get'
+  })
+}
+
+export function createEvaluation(data) {
+  return request({
+    url: '/api/evaluations',
+    method: 'post',
+    data
+  })
+}

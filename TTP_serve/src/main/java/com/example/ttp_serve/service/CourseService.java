@@ -8,6 +8,9 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.math.BigDecimal;
+
+
 
 public interface CourseService {
 
@@ -40,6 +43,9 @@ public interface CourseService {
 
     // 根据学员ID和状态获取课程
     List<Course> getCoursesByStudentAndStatus(Long studentId, CourseStatus status);
+
+    // 根据教练ID和状态获取课程
+    List<Course> getCoursesByCoachAndStatus(Long coachId, CourseStatus status);
 
     // 获取日期范围内的课程
     List<Course> getCoursesByDateRange(LocalDateTime start, LocalDateTime end);
@@ -79,4 +85,22 @@ public interface CourseService {
 
     // 使用DTO更新课程信息
     Course updateCourseFromRequest(Long id, CourseRequestDTO courseRequest);
+
+    /**
+     * 教练拒绝课程预约
+     * 
+     * @param id 课程ID
+     * @param coachId 教练ID
+     * @param reason 拒绝原因
+     * @return 被拒绝的课程
+     */
+    Course rejectCourse(Long id, Long coachId, String reason);
+    
+    /**
+     * 获取教练本月收入
+     * 
+     * @param coachId 教练ID
+     * @return 本月已完成课程的总收入
+     */
+    BigDecimal getCoachMonthlyIncome(Long coachId);
 }

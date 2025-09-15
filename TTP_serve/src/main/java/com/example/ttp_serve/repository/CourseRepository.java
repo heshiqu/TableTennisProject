@@ -43,6 +43,9 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     // 根据学员ID和日期范围查找课程
     List<Course> findByStudentIdAndStartTimeBetween(Long studentId, LocalDateTime start, LocalDateTime end);
 
+    // 根据教练ID、状态和时间段查找课程
+    List<Course> findByCoachIdAndStatusAndStartTimeBetween(Long coachId, CourseStatus status, LocalDateTime start, LocalDateTime end);
+
     // 检查时间冲突
     @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END FROM Course c WHERE " +
             "c.coach.id = :coachId AND c.status <> 'CANCELLED' AND " +

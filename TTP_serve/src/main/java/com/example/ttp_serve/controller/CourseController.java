@@ -5,6 +5,7 @@ import com.example.ttp_serve.dto.CourseRequestDTO;
 import com.example.ttp_serve.dto.MyApiResponse;
 import com.example.ttp_serve.entity.Course;
 import com.example.ttp_serve.enums.CourseStatus;
+import com.example.ttp_serve.exception.ResourceNotFoundException;
 import com.example.ttp_serve.service.CourseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -19,6 +20,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -697,6 +700,110 @@ public class CourseController {
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body(MyApiResponse.error(400, e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取教练指定状态的课程
+     *
+     * @param coachId 教练ID
+     * @param status 课程状态
+     * @return 教练指定状态的课程列表DTO
+     *
+     * @apiNote 获取指定教练的所有指定状态的课程
+     *          状态包括：待确认(PENDING)、已确认(CONFIRMED)、已完成(COMPLETED)、已取消(CANCELLED)
+     */
+    @GetMapping("/coach/{coachId}/status/{status}")
+    @Operation(summary = "获取教练指定状态的课程", description = "获取指定教练的所有指定状态的课程，状态包括：待确认、已确认、已完成、已取消")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功"),
+            @ApiResponse(responseCode = "404", description = "教练不存在"),
+            @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
+    public ResponseEntity<MyApiResponse<List<CourseDTO>>> getCoursesByCoachAndStatus(
+            @Parameter(description = "教练ID", required = true) @PathVariable Long coachId,
+            @Parameter(description = "课程状态", required = true) @PathVariable CourseStatus status) {
+        try {
+            List<Course> courses = courseService.getCoursesByCoachAndStatus(coachId, status);
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", convertToDTOList(courses)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
+    }
+
+    /**
+     * 教练拒绝课程预约
+     *
+     * @param id 课程ID
+     * @param coachId 教练ID
+     * @param reason 拒绝原因
+     * @return 被拒绝的课程对象DTO
+     *
+     * @apiNote 教练可以拒绝学员的课程预约
+     *          拒绝后课程状态变为已取消
+     *          需要提供拒绝原因
+     */
+    @PostMapping("/{id}/reject")
+    @Operation(summary = "教练拒绝课程预约", description = "教练可以拒绝学员的课程预约，拒绝后课程状态变为已取消")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "课程拒绝成功"),
+            @ApiResponse(responseCode = "400", description = "拒绝失败，课程状态不正确或不是教练的课程"),
+            @ApiResponse(responseCode = "404", description = "课程或教练不存在"),
+            @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
+    public ResponseEntity<MyApiResponse<CourseDTO>> rejectCourse(
+            @Parameter(description = "课程ID", required = true) @PathVariable Long id,
+            @Parameter(description = "教练ID", required = true) @RequestParam Long coachId,
+            @Parameter(description = "拒绝原因", required = true) @RequestParam String reason) {
+
+        try {
+            Course rejectedCourse = courseService.rejectCourse(id, coachId, reason);
+            return ResponseEntity.ok(MyApiResponse.success("课程拒绝成功", convertToDTO(rejectedCourse)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取教练本月收入
+     *
+     * @param coachId 教练ID
+     * @return 教练本月收入（本月已完成课程的总费用）
+     *
+     * @apiNote 获取指定教练在本月的所有已完成课程的总收入
+     *          仅统计状态为COMPLETED的课程费用
+     */
+    @GetMapping("/coach/{coachId}/monthly-income")
+    @Operation(summary = "获取教练本月收入", description = "获取指定教练在本月的所有已完成课程的总收入，仅统计状态为COMPLETED的课程费用")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功"),
+            @ApiResponse(responseCode = "404", description = "教练不存在"),
+            @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
+    public ResponseEntity<MyApiResponse<BigDecimal>> getCoachMonthlyIncome(
+            @Parameter(description = "教练ID", required = true) @PathVariable Long coachId) {
+        try {
+            BigDecimal monthlyIncome = courseService.getCoachMonthlyIncome(coachId);
+            
+            return ResponseEntity.ok(new MyApiResponse<>(
+                    200,
+                    "获取教练本月收入成功",
+                    monthlyIncome
+            ));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(404).body(new MyApiResponse<>(
+                    404,
+                    e.getMessage(),
+                    null
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(new MyApiResponse<>(
+                    500,
+                    "获取教练本月收入失败: " + e.getMessage(),
+                    null
+            ));
         }
     }
 }
