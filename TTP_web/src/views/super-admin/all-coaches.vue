@@ -11,7 +11,8 @@
           v-model="keyword"
           placeholder="搜索姓名、用户名或电话"
           style="width: 200px;"
-          @keyup.enter.native="handleFilter"
+          clearable
+          @input="handleFilter"
         />
         <el-select v-model="campusFilter" placeholder="所属校区" clearable @change="handleFilter">
           <el-option
@@ -26,21 +27,11 @@
           <el-option label="中级教练" value="INTERMEDIATE" />
           <el-option label="初级教练" value="JUNIOR" />
         </el-select>
-        <el-select v-model="statusFilter" placeholder="审核状态" clearable @change="handleFilter">
+        <el-select v-model="statusFilter" placeholder="用户状态" clearable @change="handleFilter">
           <el-option label="待审核" value="PENDING" />
-          <el-option label="已通过" value="APPROVED" />
-          <el-option label="已拒绝" value="REJECTED" />
-          <el-option label="已禁用" value="DISABLED" />
+          <el-option label="正常" value="ACTIVE" />
+          <el-option label="已禁用" value="INACTIVE" />
         </el-select>
-        <el-date-picker
-          v-model="dateRange"
-          type="daterange"
-          range-separator="至"
-          start-placeholder="注册开始日期"
-          end-placeholder="注册结束日期"
-          @change="handleFilter"
-        />
-        <el-button type="primary" @click="handleFilter">查询</el-button>
         <el-button @click="handleExport">导出</el-button>
       </div>
 
@@ -79,15 +70,19 @@
             ¥{{ row.hourlyRate }}/小时
           </template>
         </el-table-column>
-        <el-table-column prop="studentCount" label="学员数量" width="80" />
-        <el-table-column prop="status" label="审核状态" width="100">
+        <el-table-column label="学员数量" width="100">
+          <template slot-scope="{row}">
+            {{ row.currentStudents || 0 }}/{{ row.maxStudents || 20 }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="status" label="用户状态" width="100">
           <template slot-scope="{row}">
             <el-tag :type="getStatusType(row.status)">
               {{ getStatusText(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="注册时间" width="160" />
+        <el-table-column prop="createdAt" label="注册时间" width="160" />
         <el-table-column label="操作" width="200" fixed="right">
           <template slot-scope="{row}">
             <el-button type="text" size="small" @click="handleEdit(row)">编辑</el-button>
@@ -126,8 +121,8 @@
           </el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="收费标准">¥{{ selectedCoach.hourlyRate }}/小时</el-descriptions-item>
-        <el-descriptions-item label="学员数量">{{ selectedCoach.studentCount }}人</el-descriptions-item>
-        <el-descriptions-item label="注册时间">{{ selectedCoach.createTime }}</el-descriptions-item>
+        <el-descriptions-item label="学员数量">{{ selectedCoach.currentStudents || 0 }}/{{ selectedCoach.maxStudents || 20 }}人</el-descriptions-item>
+        <el-descriptions-item label="注册时间">{{ selectedCoach.createdAt }}</el-descriptions-item>
         <el-descriptions-item label="最后登录">{{ selectedCoach.lastLoginTime || '从未登录' }}</el-descriptions-item>
       </el-descriptions>
       
@@ -176,12 +171,12 @@ export default {
   data() {
     return {
       coaches: [],
+      allCoaches: [], // 存储所有教练数据
       campuses: [],
       keyword: '',
       campusFilter: '',
       levelFilter: '',
       statusFilter: '',
-      dateRange: [],
       loading: false,
       total: 0,
       listQuery: {
@@ -205,20 +200,14 @@ export default {
     async getList() {
       this.loading = true
       try {
-        const params = {
-          page: this.listQuery.page,
-          limit: this.listQuery.limit,
-          keyword: this.keyword,
-          campusId: this.campusFilter,
-          level: this.levelFilter,
-          status: this.statusFilter,
-          startDate: this.dateRange && this.dateRange[0] ? this.dateRange[0] : null,
-          endDate: this.dateRange && this.dateRange[1] ? this.dateRange[1] : null
+        // 首次加载时获取所有教练数据
+        if (this.allCoaches.length === 0) {
+          const response = await getAllCoaches()
+          this.allCoaches = response.data || []
         }
         
-        const response = await getAllCoaches(params)
-        this.coaches = response.data.records || []
-        this.total = response.data.total || 0
+        // 前端筛选数据
+        this.applyFilters()
       } catch (error) {
         console.error('获取教练列表失败:', error)
         this.$message.error('获取教练列表失败')
@@ -226,17 +215,59 @@ export default {
         this.loading = false
       }
     },
+    
+    applyFilters() {
+      // 筛选逻辑
+      let filteredCoaches = [...this.allCoaches]
+      
+      // 关键词筛选（姓名、用户名、电话）
+      if (this.keyword) {
+        const keyword = this.keyword.toLowerCase()
+        filteredCoaches = filteredCoaches.filter(coach => 
+          coach.realName?.toLowerCase().includes(keyword) ||
+          coach.username?.toLowerCase().includes(keyword) ||
+          coach.phone?.toLowerCase().includes(keyword)
+        )
+      }
+      
+      // 校区筛选
+      if (this.campusFilter) {
+        filteredCoaches = filteredCoaches.filter(coach => 
+          coach.campusId === this.campusFilter
+        )
+      }
+      
+      // 级别筛选
+      if (this.levelFilter) {
+        filteredCoaches = filteredCoaches.filter(coach => 
+          coach.level === this.levelFilter
+        )
+      }
+      
+      // 状态筛选
+      if (this.statusFilter) {
+        filteredCoaches = filteredCoaches.filter(coach => 
+          coach.status === this.statusFilter
+        )
+      }
+      
+      // 分页
+      this.total = filteredCoaches.length
+      const startIndex = (this.listQuery.page - 1) * this.listQuery.limit
+      const endIndex = startIndex + this.listQuery.limit
+      this.coaches = filteredCoaches.slice(startIndex, endIndex)
+    },
     async loadCampuses() {
       try {
         const response = await getCampuses({ limit: 1000 })
-        this.campuses = response.data.records || []
+        this.campuses = response.data || []
       } catch (error) {
         console.error('获取校区列表失败:', error)
       }
     },
     handleFilter() {
       this.listQuery.page = 1
-      this.getList()
+      this.applyFilters()
     },
     handleCreate() {
       this.$message.info('新增教练功能开发中...')
@@ -329,9 +360,7 @@ export default {
           keyword: this.keyword,
           campusId: this.campusFilter,
           level: this.levelFilter,
-          status: this.statusFilter,
-          startDate: this.dateRange && this.dateRange[0] ? this.dateRange[0] : null,
-          endDate: this.dateRange && this.dateRange[1] ? this.dateRange[1] : null
+          status: this.statusFilter
         }
         
         await exportCoaches(params)
@@ -360,18 +389,16 @@ export default {
     getStatusType(status) {
       const types = {
         'PENDING': 'info',
-        'APPROVED': 'success',
-        'REJECTED': 'danger',
-        'DISABLED': 'warning'
+        'ACTIVE': 'success',
+        'INACTIVE': 'warning'
       }
       return types[status] || 'info'
     },
     getStatusText(status) {
       const texts = {
         'PENDING': '待审核',
-        'APPROVED': '已通过',
-        'REJECTED': '已拒绝',
-        'DISABLED': '已禁用'
+        'ACTIVE': '正常',
+        'INACTIVE': '已禁用'
       }
       return texts[status] || status
     }

@@ -49,3 +49,28 @@ export function applyRefund(courseId) {
     method: 'post'
   })
 }
+
+// 创建支付订单（根据用户需求的接口）
+export function createPaymentOrder(data) {
+  return request({
+    url: '/api/payments',
+    method: 'post',
+    data
+  })
+}
+
+// 确认支付成功
+export function confirmPaymentSuccess(orderId) {
+  return request({
+    url: `/api/payments/${orderId}/success`,
+    method: 'post'
+  })
+}
+
+// 确认支付失败
+export function confirmPaymentFailure(orderId) {
+  return request({
+    url: `/api/payments/${orderId}/failure`,
+    method: 'post'
+  })
+}

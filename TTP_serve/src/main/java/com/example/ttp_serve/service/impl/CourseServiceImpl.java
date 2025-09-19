@@ -490,4 +490,70 @@ public class CourseServiceImpl implements CourseService {
                 .map(Course::getFee)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
+
+    @Override
+    public Long countTodayConfirmedCourses() {
+        // 获取今日的开始和结束时间
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startOfDay = now.withHour(0).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime endOfDay = startOfDay.plusDays(1).minusSeconds(1);
+
+        // 查询今日已确认的课程数量
+        return courseRepository.countByStatusAndStartTimeBetween(CourseStatus.CONFIRMED, startOfDay, endOfDay);
+    }
+
+    @Override
+    public Long countTodayConfirmedCoursesByCoach(Long coachId) {
+        // 检查教练是否存在
+        if (!userRepository.existsById(coachId)) {
+            throw new ResourceNotFoundException("教练ID '" + coachId + "' 不存在");
+        }
+
+        // 获取今日的开始和结束时间
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startOfDay = now.withHour(0).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime endOfDay = startOfDay.plusDays(1).minusSeconds(1);
+
+        // 查询指定教练今日已确认的课程数量
+        return courseRepository.countByCoachIdAndStatusAndStartTimeBetween(coachId, CourseStatus.CONFIRMED, startOfDay, endOfDay);
+    }
+
+    @Override
+    public Long countTodayConfirmedCoursesByStudent(Long studentId) {
+        // 检查学员是否存在
+        if (!userRepository.existsById(studentId)) {
+            throw new ResourceNotFoundException("学员ID '" + studentId + "' 不存在");
+        }
+
+        // 获取今日的开始和结束时间
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startOfDay = now.withHour(0).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime endOfDay = startOfDay.plusDays(1).minusSeconds(1);
+
+        // 查询指定学员今日已确认的课程数量
+        return courseRepository.countByStudentIdAndStatusAndStartTimeBetween(studentId, CourseStatus.CONFIRMED, startOfDay, endOfDay);
+    }
+
+    @Override
+    public Long countTodayConfirmedCoursesByCampus(Long campusId) {
+        // 获取今日的开始和结束时间
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startOfDay = now.withHour(0).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime endOfDay = startOfDay.plusDays(1).minusSeconds(1);
+
+        // 查询指定校区今日已确认的课程数量
+        return courseRepository.countByCampusIdAndStatusAndStartTimeBetween(campusId, CourseStatus.CONFIRMED, startOfDay, endOfDay);
+    }
+
+    @Override
+    public List<Course> getAllCoursesList() {
+        return courseRepository.findAllCoursesList();
+    }
+
+    @Override
+    public List<Course> getCoursesByCampusId(Long campusId) {
+        // 检查校区是否存在
+        // 这里我们不检查校区是否存在，因为JPA查询会自动返回空列表
+        return courseRepository.findByCampusId(campusId);
+    }
 }

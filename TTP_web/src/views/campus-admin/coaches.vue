@@ -6,17 +6,15 @@
         placeholder="教练姓名"
         style="width: 200px;"
         class="filter-item"
-        @keyup.enter.native="handleFilter"
+        @input="applyFilters"
       />
-      <el-select v-model="listQuery.level" placeholder="教练级别" clearable style="width: 120px" class="filter-item" @change="handleFilter">
+      <el-select v-model="listQuery.level" placeholder="教练级别" clearable style="width: 120px" class="filter-item" @change="applyFilters">
         <el-option v-for="item in levelOptions" :key="item.key" :label="item.display_name" :value="item.key" />
       </el-select>
-      <el-select v-model="listQuery.status" placeholder="审核状态" clearable style="width: 120px" class="filter-item" @change="handleFilter">
-        <el-option v-for="item in auditStatusOptions" :key="item.key" :label="item.display_name" :value="item.key" />
+      <el-select v-model="listQuery.status" placeholder="状态" clearable style="width: 100px" class="filter-item" @change="applyFilters">
+        <el-option v-for="item in statusOptions" :key="item.key" :label="item.display_name" :value="item.key" />
       </el-select>
-      <el-button v-waves class="filter-item" type="primary" icon="el-icon-search" @click="handleFilter">
-        搜索
-      </el-button>
+
       <el-button
         :loading="downloadLoading"
         style="margin-left: 10px;"
@@ -37,9 +35,9 @@
       highlight-current-row
       style="width: 100%;"
     >
-      <el-table-column label="序号" prop="id" align="center" width="80">
-        <template slot-scope="{row}">
-          <span>{{ row.id }}</span>
+      <el-table-column label="序号" type="index" align="center" width="80">
+        <template slot-scope="{$index}">
+          <span>{{ (listQuery.page - 1) * listQuery.limit + $index + 1 }}</span>
         </template>
       </el-table-column>
       <el-table-column label="头像" width="80px" align="center">
@@ -81,7 +79,7 @@
       </el-table-column>
       <el-table-column label="学员数量" width="80px" align="center">
         <template slot-scope="{row}">
-          <span>{{ row.studentCount }}</span>
+          <span>{{ row.currentStudents }}/{{ row.maxStudents }}</span>
         </template>
       </el-table-column>
       <el-table-column label="电话" width="120px" align="center">
@@ -94,16 +92,23 @@
           <span>{{ row.email }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="审核状态" class-name="status-col" width="100">
+      <el-table-column label="获奖信息" min-width="200px" align="center">
         <template slot-scope="{row}">
-          <el-tag :type="row.auditStatus | auditStatusFilter">
-            {{ row.auditStatus | auditStatusNameFilter }}
+          <el-tooltip :content="row.awards" placement="top" :disabled="!row.awards">
+            <span class="text-ellipsis">{{ row.awards || '-' }}</span>
+          </el-tooltip>
+        </template>
+      </el-table-column>
+      <el-table-column label="状态" width="80px" align="center">
+        <template slot-scope="{row}">
+          <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'warning'">
+            {{ row.status === 'ACTIVE' ? '活跃' : '待审核' }}
           </el-tag>
         </template>
       </el-table-column>
       <el-table-column label="注册时间" width="160px" align="center">
         <template slot-scope="{row}">
-          <span>{{ row.createTime | parseTime('{y}-{m}-{d} {h}:{i}') }}</span>
+          <span>{{ row.createdAt | parseTime('{y}-{m}-{d} {h}:{i}') }}</span>
         </template>
       </el-table-column>
       <el-table-column label="操作" align="center" width="250" class-name="small-padding fixed-width">
@@ -111,17 +116,11 @@
           <el-button type="primary" size="mini" @click="handleDetail(row)">
             详情
           </el-button>
-          <el-button v-if="row.auditStatus === 0" size="mini" type="success" @click="handleAudit(row)">
-            审核
-          </el-button>
-          <el-button v-if="row.auditStatus === 1" size="mini" type="warning" @click="handleUpdate(row)">
+          <el-button size="mini" type="warning" @click="handleUpdate(row)">
             编辑
           </el-button>
-          <el-button v-if="row.auditStatus === 1" size="mini" type="danger" @click="handleDisable(row)">
+          <el-button size="mini" type="danger" @click="handleDisable(row)">
             禁用
-          </el-button>
-          <el-button v-if="row.auditStatus === 2" size="mini" type="success" @click="handleEnable(row)">
-            启用
           </el-button>
         </template>
       </el-table-column>
@@ -135,33 +134,7 @@
       @pagination="getList"
     />
 
-    <!-- 审核对话框 -->
-    <el-dialog title="教练审核" :visible.sync="auditDialogVisible" width="500px">
-      <el-form ref="auditForm" :model="auditForm" :rules="auditRules" label-width="100px">
-        <el-form-item label="教练姓名">
-          <span>{{ auditForm.realName }}</span>
-        </el-form-item>
-        <el-form-item label="教练级别" prop="level">
-          <el-select v-model="auditForm.level" placeholder="请选择教练级别">
-            <el-option label="高级教练" :value="1" />
-            <el-option label="中级教练" :value="2" />
-            <el-option label="初级教练" :value="3" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="收费标准" prop="hourlyRate">
-          <el-input-number v-model="auditForm.hourlyRate" :min="0" :max="500" :step="10" />
-          <span style="margin-left: 10px;">元/小时</span>
-        </el-form-item>
-        <el-form-item label="审核意见" prop="auditRemark">
-          <el-input v-model="auditForm.auditRemark" type="textarea" :rows="3" placeholder="请输入审核意见" />
-        </el-form-item>
-      </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="auditDialogVisible = false">取消</el-button>
-        <el-button type="danger" @click="rejectCoach">拒绝</el-button>
-        <el-button type="success" @click="approveCoach">通过</el-button>
-      </div>
-    </el-dialog>
+
 
     <!-- 编辑教练对话框 -->
     <el-dialog title="编辑教练" :visible.sync="editDialogVisible" width="500px">
@@ -195,8 +168,18 @@
   </div>
 </template>
 
+<style scoped>
+.text-ellipsis {
+  display: inline-block;
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+</style>
+
 <script>
-import { getCoachList, updateCoach, auditCoach } from '@/api/coach'
+import { getCoachesByCampus, updateCoach, auditCoach } from '@/api/coach'
 import waves from '@/directive/waves'
 import { parseTime } from '@/utils'
 import Pagination from '@/components/Pagination'
@@ -208,19 +191,19 @@ export default {
   filters: {
     levelFilter(level) {
       const levelMap = {
-        1: 'danger',
-        2: 'warning',
-        3: 'success'
+        'SENIOR': 'danger',
+        'INTERMEDIATE': 'warning',
+        'JUNIOR': 'success'
       }
-      return levelMap[level]
+      return levelMap[level] || 'info'
     },
     levelNameFilter(level) {
       const levelNameMap = {
-        1: '高级',
-        2: '中级',
-        3: '初级'
+        'SENIOR': '高级',
+        'INTERMEDIATE': '中级',
+        'JUNIOR': '初级'
       }
-      return levelNameMap[level]
+      return levelNameMap[level] || level
     },
     auditStatusFilter(status) {
       const statusMap = {
@@ -240,8 +223,8 @@ export default {
     },
     genderFilter(gender) {
       const genderMap = {
-        1: '男',
-        2: '女'
+        'MALE': '男',
+        'FEMALE': '女'
       }
       return genderMap[gender] || '未知'
     }
@@ -264,24 +247,11 @@ export default {
         { key: 2, display_name: '中级教练' },
         { key: 3, display_name: '初级教练' }
       ],
-      auditStatusOptions: [
-        { key: 0, display_name: '待审核' },
-        { key: 1, display_name: '已通过' },
-        { key: 2, display_name: '已拒绝' }
+      statusOptions: [
+        { key: 'ACTIVE', display_name: '活跃' },
+        { key: 'PENDING', display_name: '待审核' }
       ],
-      auditDialogVisible: false,
-      auditForm: {
-        id: undefined,
-        realName: '',
-        level: 1,
-        hourlyRate: 150,
-        auditRemark: ''
-      },
-      auditRules: {
-        level: [{ required: true, message: '请选择教练级别', trigger: 'change' }],
-        hourlyRate: [{ required: true, message: '请输入收费标准', trigger: 'blur' }],
-        auditRemark: [{ required: true, message: '请输入审核意见', trigger: 'blur' }]
-      },
+
       editDialogVisible: false,
       editForm: {
         id: undefined,
@@ -311,80 +281,58 @@ export default {
     async getList() {
       this.listLoading = true
       try {
-        const response = await getCoachList(this.listQuery)
+        const campusId = this.$store.state.user.user?.campusId
+        if (!campusId) {
+          this.$message.error('获取校区信息失败')
+          this.listLoading = false
+          return
+        }
+        
+        const response = await getCoachesByCampus(campusId)
         if (response.code === 200) {
-          this.list = response.data.records
-          this.total = response.data.total
+          // 根据筛选条件过滤数据
+          let filteredList = response.data || []
+          
+          if (this.listQuery.name) {
+            filteredList = filteredList.filter(coach => 
+              coach.realName && coach.realName.toLowerCase().includes(this.listQuery.name.toLowerCase())
+            )
+          }
+          
+          if (this.listQuery.level) {
+            const levelMap = { 1: 'SENIOR', 2: 'INTERMEDIATE', 3: 'JUNIOR' }
+            const targetLevel = levelMap[this.listQuery.level]
+            filteredList = filteredList.filter(coach => coach.level === targetLevel)
+          }
+          
+          if (this.listQuery.status) {
+            filteredList = filteredList.filter(coach => coach.status === this.listQuery.status)
+          }
+          
+          // 前端分页处理
+          this.total = filteredList.length
+          const start = (this.listQuery.page - 1) * this.listQuery.limit
+          const end = start + this.listQuery.limit
+          this.list = filteredList.slice(start, end)
         }
       } catch (error) {
         console.error('获取教练列表失败:', error)
       }
       this.listLoading = false
     },
-    handleFilter() {
+    applyFilters() {
       this.listQuery.page = 1
       this.getList()
     },
     handleDetail(row) {
       this.$router.push(`/campus/coaches/${row.id}`)
     },
-    handleAudit(row) {
-      this.auditForm = {
-        id: row.id,
-        realName: row.realName,
-        level: 2,
-        hourlyRate: 150,
-        auditRemark: ''
-      }
-      this.auditDialogVisible = true
-    },
-    async approveCoach() {
-      this.$refs.auditForm.validate(async(valid) => {
-        if (valid) {
-          try {
-            const response = await auditCoach({
-              id: this.auditForm.id,
-              action: 'approve',
-              level: this.auditForm.level,
-              hourlyRate: this.auditForm.hourlyRate,
-              auditRemark: this.auditForm.auditRemark
-            })
-            if (response.code === 200) {
-              this.$message.success('审核通过')
-              this.auditDialogVisible = false
-              this.getList()
-            }
-          } catch (error) {
-            console.error('审核失败:', error)
-          }
-        }
-      })
-    },
-    async rejectCoach() {
-      this.$refs.auditForm.validate(async(valid) => {
-        if (valid) {
-          try {
-            const response = await auditCoach({
-              id: this.auditForm.id,
-              action: 'reject',
-              auditRemark: this.auditForm.auditRemark
-            })
-            if (response.code === 200) {
-              this.$message.success('已拒绝')
-              this.auditDialogVisible = false
-              this.getList()
-            }
-          } catch (error) {
-            console.error('拒绝失败:', error)
-          }
-        }
-      })
-    },
     handleUpdate(row) {
+      const levelMap = { 'SENIOR': 1, 'INTERMEDIATE': 2, 'JUNIOR': 3 }
       this.editForm = {
         id: row.id,
         realName: row.realName,
-        level: row.level,
+        level: levelMap[row.level] || 2,
         hourlyRate: row.hourlyRate,
         phone: row.phone,
         email: row.email
@@ -395,7 +343,12 @@ export default {
       this.$refs.editForm.validate(async(valid) => {
         if (valid) {
           try {
-            const response = await updateCoach(this.editForm)
+            const levelMap = { 1: 'SENIOR', 2: 'INTERMEDIATE', 3: 'JUNIOR' }
+            const updateData = {
+              ...this.editForm,
+              level: levelMap[this.editForm.level]
+            }
+            const response = await updateCoach(this.editForm.id, updateData)
             if (response.code === 200) {
               this.$message.success('更新成功')
               this.editDialogVisible = false

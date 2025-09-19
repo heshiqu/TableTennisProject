@@ -64,4 +64,10 @@ public interface CoachService {
      * @return 指定校区的教练数量
      */
     long getCoachCountByCampus(Long campusId);
+
+    /**
+     * 获取所有教练信息
+     * @return 所有教练DTO列表
+     */
+    List<CoachDTO> getAllCoaches();
 }

@@ -34,6 +34,10 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     @Query("SELECT c FROM Course c WHERE c.coach.campus.id = :campusId OR c.student.campus.id = :campusId")
     List<Course> findByCampusId(@Param("campusId") Long campusId);
 
+    // 查找所有课程列表
+    @Query("SELECT c FROM Course c ORDER BY c.createdAt DESC")
+    List<Course> findAllCoursesList();
+
     // 根据日期范围查找课程
     List<Course> findByStartTimeBetween(LocalDateTime start, LocalDateTime end);
 
@@ -91,4 +95,18 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
             Long studentId,
             Long coachId
     );
+
+    // 统计今日已确认的课程数量
+    Long countByStatusAndStartTimeBetween(CourseStatus status, LocalDateTime start, LocalDateTime end);
+
+
+    // 统计指定教练今日已确认的课程数量
+    Long countByCoachIdAndStatusAndStartTimeBetween(Long coachId, CourseStatus status, LocalDateTime start, LocalDateTime end);
+
+    // 统计指定学员今日已确认的课程数量
+    Long countByStudentIdAndStatusAndStartTimeBetween(Long studentId, CourseStatus status, LocalDateTime start, LocalDateTime end);
+
+    // 统计指定校区今日已确认的课程数量
+    @Query("SELECT COUNT(c) FROM Course c WHERE (c.coach.campus.id = :campusId OR c.student.campus.id = :campusId) AND c.status = :status AND c.startTime BETWEEN :start AND :end")
+    Long countByCampusIdAndStatusAndStartTimeBetween(@Param("campusId") Long campusId, @Param("status") CourseStatus status, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 }

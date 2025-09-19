@@ -6,17 +6,14 @@
         placeholder="学员姓名"
         style="width: 200px;"
         class="filter-item"
-        @keyup.enter.native="handleFilter"
+        @input="applyFilters"
       />
-      <el-select v-model="listQuery.gender" placeholder="性别" clearable style="width: 90px" class="filter-item" @change="handleFilter">
+      <el-select v-model="listQuery.gender" placeholder="性别" clearable style="width: 90px" class="filter-item" @change="applyFilters">
         <el-option v-for="item in genderOptions" :key="item.key" :label="item.display_name" :value="item.key" />
       </el-select>
-      <el-select v-model="listQuery.status" placeholder="状态" clearable class="filter-item" style="width: 110px" @change="handleFilter">
+      <el-select v-model="listQuery.status" placeholder="状态" clearable class="filter-item" style="width: 110px" @change="applyFilters">
         <el-option v-for="item in statusOptions" :key="item.key" :label="item.display_name" :value="item.key" />
       </el-select>
-      <el-button v-waves class="filter-item" type="primary" icon="el-icon-search" @click="handleFilter">
-        搜索
-      </el-button>
       <el-button
         class="filter-item"
         style="margin-left: 10px;"
@@ -46,9 +43,9 @@
       highlight-current-row
       style="width: 100%;"
     >
-      <el-table-column label="序号" prop="id" align="center" width="80">
-        <template slot-scope="{row}">
-          <span>{{ row.id }}</span>
+      <el-table-column label="序号" type="index" align="center" width="80">
+        <template slot-scope="{$index}">
+          <span>{{ $index + 1 }}</span>
         </template>
       </el-table-column>
       <el-table-column label="头像" width="80px" align="center">
@@ -88,12 +85,12 @@
       </el-table-column>
       <el-table-column label="账户余额" width="100px" align="center">
         <template slot-scope="{row}">
-          <span>¥{{ row.balance }}</span>
+          <span>¥{{ Number(row.balance).toFixed(2) }}</span>
         </template>
       </el-table-column>
       <el-table-column label="注册时间" width="160px" align="center">
         <template slot-scope="{row}">
-          <span>{{ row.createTime | parseTime('{y}-{m}-{d} {h}:{i}') }}</span>
+          <span>{{ row.createdAt | parseTime('{y}-{m}-{d} {h}:{i}') }}</span>
         </template>
       </el-table-column>
       <el-table-column label="状态" class-name="status-col" width="100">
@@ -108,10 +105,10 @@
           <el-button type="primary" size="mini" @click="handleUpdate(row)">
             编辑
           </el-button>
-          <el-button v-if="row.status === 1" size="mini" type="warning" @click="handleModifyStatus(row, 0)">
+          <el-button v-if="row.status === 'ACTIVE'" size="mini" type="warning" @click="handleModifyStatus(row, 'INACTIVE')">
             禁用
           </el-button>
-          <el-button v-if="row.status === 0" size="mini" type="success" @click="handleModifyStatus(row, 1)">
+          <el-button v-if="row.status === 'INACTIVE'" size="mini" type="success" @click="handleModifyStatus(row, 'ACTIVE')">
             启用
           </el-button>
           <el-button size="mini" type="danger" @click="handleDelete(row,$index)">
@@ -181,7 +178,7 @@
     <el-dialog title="余额调整" :visible.sync="balanceDialogVisible" width="400px">
       <el-form ref="balanceForm" :model="balanceForm" :rules="balanceRules" label-width="100px">
         <el-form-item label="当前余额">
-          <span>¥{{ balanceForm.currentBalance }}</span>
+          <span>¥{{ Number(balanceForm.currentBalance).toFixed(2) }}</span>
         </el-form-item>
         <el-form-item label="调整类型" prop="type">
           <el-select v-model="balanceForm.type" placeholder="请选择调整类型">
@@ -205,7 +202,7 @@
 </template>
 
 <script>
-import { getStudentList, createStudent, updateStudent, deleteStudent, adjustStudentBalance } from '@/api/student'
+import { getStudentListByCampus, createStudent, updateStudent, deleteStudent, adjustStudentBalance } from '@/api/student'
 import waves from '@/directive/waves'
 import { parseTime } from '@/utils'
 import Pagination from '@/components/Pagination'
@@ -217,22 +214,22 @@ export default {
   filters: {
     statusFilter(status) {
       const statusMap = {
-        0: 'danger',
-        1: 'success'
+        'INACTIVE': 'danger',
+        'ACTIVE': 'success'
       }
-      return statusMap[status]
+      return statusMap[status] || 'info'
     },
     statusNameFilter(status) {
       const statusNameMap = {
-        0: '禁用',
-        1: '正常'
+        'INACTIVE': '禁用',
+        'ACTIVE': '正常'
       }
-      return statusNameMap[status]
+      return statusNameMap[status] || '未知'
     },
     genderFilter(gender) {
       const genderMap = {
-        1: '男',
-        2: '女'
+        'MALE': '男',
+        'FEMALE': '女'
       }
       return genderMap[gender] || '未知'
     }
@@ -241,6 +238,7 @@ export default {
     return {
       tableKey: 0,
       list: null,
+      originalList: [], // 保存原始数据用于过滤
       total: 0,
       listLoading: true,
       listQuery: {
@@ -251,12 +249,12 @@ export default {
         status: undefined
       },
       genderOptions: [
-        { key: 1, display_name: '男' },
-        { key: 2, display_name: '女' }
+        { key: 'MALE', display_name: '男' },
+        { key: 'FEMALE', display_name: '女' }
       ],
       statusOptions: [
-        { key: 1, display_name: '正常' },
-        { key: 0, display_name: '禁用' }
+        { key: 'ACTIVE', display_name: '正常' },
+        { key: 'INACTIVE', display_name: '禁用' }
       ],
       temp: {
         id: undefined,
@@ -312,19 +310,25 @@ export default {
     async getList() {
       this.listLoading = true
       try {
-        const response = await getStudentList(this.listQuery)
+        // 从vuex获取当前用户的校区ID
+        const currentUser = this.$store.state.user.user
+        if (!currentUser || !currentUser.campusId) {
+          this.$message.error('无法获取用户校区信息')
+          this.listLoading = false
+          return
+        }
+
+        const campusId = currentUser.campusId
+        const response = await getStudentListByCampus(campusId)
         if (response.code === 200) {
-          this.list = response.data.records
-          this.total = response.data.total
+          this.originalList = response.data || []
+          this.applyFilters()
         }
       } catch (error) {
         console.error('获取学员列表失败:', error)
+        this.$message.error('获取学员列表失败')
       }
       this.listLoading = false
-    },
-    handleFilter() {
-      this.listQuery.page = 1
-      this.getList()
     },
     resetTemp() {
       this.temp = {
@@ -441,7 +445,7 @@ export default {
       this.downloadLoading = true
       import('@/utils/export2excel').then(excel => {
         const tHeader = ['ID', '用户名', '真实姓名', '性别', '年龄', '电话', '邮箱', '账户余额', '注册时间', '状态']
-        const filterVal = ['id', 'username', 'realName', 'gender', 'age', 'phone', 'email', 'balance', 'createTime', 'status']
+        const filterVal = ['id', 'username', 'realName', 'gender', 'age', 'phone', 'email', 'balance', 'createdAt', 'status']
         const data = this.formatJson(filterVal)
         excel.export_json_to_excel({
           header: tHeader,
@@ -454,16 +458,40 @@ export default {
     formatJson(filterVal) {
       return this.list.map(v => filterVal.map(j => {
         if (j === 'gender') {
-          return v[j] === 1 ? '男' : '女'
+          return v[j] === 'MALE' ? '男' : (v[j] === 'FEMALE' ? '女' : '未知')
         } else if (j === 'status') {
-          return v[j] === 1 ? '正常' : '禁用'
-        } else if (j === 'createTime') {
+          return v[j] === 'ACTIVE' ? '正常' : '禁用'
+        } else if (j === 'createdAt') {
           return parseTime(v[j])
+        } else if (j === 'balance') {
+          return Number(v[j]).toFixed(2)
         } else {
           return v[j]
         }
       }))
     },
+    applyFilters() {
+       // 由于新API返回完整数据，在前端进行过滤
+       let filteredList = this.originalList || []
+       
+       if (this.listQuery.name) {
+         filteredList = filteredList.filter(item => 
+           item.realName && item.realName.toLowerCase().includes(this.listQuery.name.toLowerCase()) ||
+           item.username && item.username.toLowerCase().includes(this.listQuery.name.toLowerCase())
+         )
+       }
+       
+       if (this.listQuery.gender) {
+         filteredList = filteredList.filter(item => item.gender === this.listQuery.gender)
+       }
+       
+       if (this.listQuery.status !== undefined && this.listQuery.status !== '') {
+         filteredList = filteredList.filter(item => item.status === this.listQuery.status)
+       }
+       
+       this.list = filteredList
+       this.total = filteredList.length
+     },
     showBalanceDialog(row) {
       this.balanceForm = {
         studentId: row.id,
@@ -482,6 +510,11 @@ export default {
             if (response.code === 200) {
               const index = this.list.findIndex(v => v.id === this.balanceForm.studentId)
               this.list[index].balance = response.data.newBalance
+              // 同时更新原始数据
+              const originalIndex = this.originalList.findIndex(v => v.id === this.balanceForm.studentId)
+              if (originalIndex !== -1) {
+                this.originalList[originalIndex].balance = response.data.newBalance
+              }
               this.balanceDialogVisible = false
               this.$notify({
                 title: '成功',

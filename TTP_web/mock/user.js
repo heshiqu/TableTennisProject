@@ -329,5 +329,19 @@ module.exports = [
         }
       }
     }
+  },
+
+  // 获取学员总数
+  {
+    url: '/api/users/count/students',
+    type: 'get',
+    response: () => {
+      return {
+        code: 200,
+        message: '获取成功',
+        data: Mock.Random.integer(50, 500),
+        timestamp: +new Date()
+      }
+    }
   }
 ]

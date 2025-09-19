@@ -3,30 +3,14 @@
     <div class="filter-container">
       <el-input
         v-model="listQuery.name"
-        placeholder="课程名称"
+        placeholder="按教练姓名，学生姓名查询"
         style="width: 200px;"
         class="filter-item"
-        @keyup.enter.native="handleFilter"
+        @input="handleFilter"
       />
-      <el-select v-model="listQuery.coachId" placeholder="教练" clearable style="width: 150px" class="filter-item" @change="handleFilter">
-        <el-option v-for="item in coachOptions" :key="item.id" :label="item.realName" :value="item.id" />
-      </el-select>
       <el-select v-model="listQuery.status" placeholder="状态" clearable style="width: 110px" class="filter-item" @change="handleFilter">
         <el-option v-for="item in statusOptions" :key="item.key" :label="item.display_name" :value="item.key" />
       </el-select>
-      <el-date-picker
-        v-model="listQuery.dateRange"
-        type="daterange"
-        range-separator="至"
-        start-placeholder="开始日期"
-        end-placeholder="结束日期"
-        style="width: 300px;"
-        class="filter-item"
-        @change="handleFilter"
-      />
-      <el-button v-waves class="filter-item" type="primary" icon="el-icon-search" @click="handleFilter">
-        搜索
-      </el-button>
       <el-button
         :loading="downloadLoading"
         style="margin-left: 10px;"
@@ -47,14 +31,9 @@
       highlight-current-row
       style="width: 100%;"
     >
-      <el-table-column label="序号" prop="id" align="center" width="80">
-        <template slot-scope="{row}">
-          <span>{{ row.id }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="课程名称" min-width="150px" align="center">
-        <template slot-scope="{row}">
-          <span>{{ row.name }}</span>
+      <el-table-column label="序号" align="center" width="80">
+        <template slot-scope="{$index}">
+          <span>{{ $index + 1 }}</span>
         </template>
       </el-table-column>
       <el-table-column label="教练姓名" width="100px" align="center">
@@ -69,7 +48,7 @@
       </el-table-column>
       <el-table-column label="日期" width="120px" align="center">
         <template slot-scope="{row}">
-          <span>{{ row.courseDate | parseTime('{y}-{m}-{d}') }}</span>
+          <span>{{ row.courseDate }}</span>
         </template>
       </el-table-column>
       <el-table-column label="时间" width="120px" align="center">
@@ -79,7 +58,12 @@
       </el-table-column>
       <el-table-column label="球台" width="80px" align="center">
         <template slot-scope="{row}">
-          <span>{{ row.tableNumber }}</span>
+          <span>{{ row.courtNumber }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="课时" width="60px" align="center">
+        <template slot-scope="{row}">
+          <span>{{ row.duration }}小时</span>
         </template>
       </el-table-column>
       <el-table-column label="费用" width="80px" align="center">
@@ -96,7 +80,7 @@
       </el-table-column>
       <el-table-column label="创建时间" width="160px" align="center">
         <template slot-scope="{row}">
-          <span>{{ row.createTime | parseTime('{y}-{m}-{d} {h}:{i}') }}</span>
+          <span>{{ row.createdAt | parseTime('{y}-{m}-{d} {h}:{i}') }}</span>
         </template>
       </el-table-column>
       <el-table-column label="操作" align="center" width="200" class-name="small-padding fixed-width">
@@ -104,41 +88,34 @@
           <el-button type="primary" size="mini" @click="handleDetail(row)">
             详情
           </el-button>
-          <el-button v-if="row.status === 0" size="mini" type="success" @click="handleConfirm(row)">
+          <el-button v-if="row.status === 'PENDING'" size="mini" type="success" @click="handleConfirm(row)">
             确认
           </el-button>
-          <el-button v-if="row.status === 0" size="mini" type="danger" @click="handleCancel(row)">
+          <el-button v-if="row.status === 'PENDING' || row.status === 'CONFIRMED'" size="mini" type="danger" @click="handleCancel(row)">
             取消
           </el-button>
         </template>
       </el-table-column>
     </el-table>
 
-    <pagination
-      v-show="total>0"
-      :total="total"
-      :page.sync="listQuery.page"
-      :limit.sync="listQuery.limit"
-      @pagination="getList"
-    />
-
     <!-- 课程详情对话框 -->
     <el-dialog title="课程详情" :visible.sync="detailDialogVisible" width="600px">
       <el-descriptions :column="2" border>
-        <el-descriptions-item label="课程名称">{{ courseDetail.name }}</el-descriptions-item>
         <el-descriptions-item label="教练姓名">{{ courseDetail.coachName }}</el-descriptions-item>
         <el-descriptions-item label="学员姓名">{{ courseDetail.studentName }}</el-descriptions-item>
-        <el-descriptions-item label="课程日期">{{ courseDetail.courseDate | parseTime('{y}-{m}-{d}') }}</el-descriptions-item>
+        <el-descriptions-item label="课程日期">{{ courseDetail.courseDate }}</el-descriptions-item>
         <el-descriptions-item label="上课时间">{{ courseDetail.startTime }} - {{ courseDetail.endTime }}</el-descriptions-item>
-        <el-descriptions-item label="球台号">{{ courseDetail.tableNumber }}</el-descriptions-item>
+        <el-descriptions-item label="球台号">{{ courseDetail.courtNumber }}</el-descriptions-item>
+        <el-descriptions-item label="课时">{{ courseDetail.duration }}小时</el-descriptions-item>
         <el-descriptions-item label="课程费用">¥{{ courseDetail.fee }}</el-descriptions-item>
         <el-descriptions-item label="课程状态">
           <el-tag :type="courseDetail.status | statusFilter">
             {{ courseDetail.status | statusNameFilter }}
           </el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ courseDetail.createTime | parseTime('{y}-{m}-{d} {h}:{i}') }}</el-descriptions-item>
-        <el-descriptions-item label="备注" :span="2">{{ courseDetail.remark || '无' }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ courseDetail.createdAt | parseTime('{y}-{m}-{d} {h}:{i}') }}</el-descriptions-item>
+        <el-descriptions-item label="取消原因" v-if="courseDetail.status === 'CANCELLED'" :span="2">{{ courseDetail.cancelReason || '无' }}</el-descriptions-item>
+        <el-descriptions-item label="取消人" v-if="courseDetail.status === 'CANCELLED'" :span="2">{{ courseDetail.cancelByUserName || '无' }}</el-descriptions-item>
       </el-descriptions>
       <div slot="footer" class="dialog-footer">
         <el-button @click="detailDialogVisible = false">关闭</el-button>
@@ -148,32 +125,43 @@
 </template>
 
 <script>
-import { getCourseList, adminConfirmCourse, adminCancelCourse } from '@/api/course'
-import { getCoachList } from '@/api/coach'
+import { getCampusCourses, adminConfirmCourse, adminCancelCourse } from '@/api/course'
 import waves from '@/directive/waves'
 import { parseTime } from '@/utils'
-import Pagination from '@/components/Pagination'
+
+// 添加防抖函数
+function debounce(fn, delay) {
+  let timer = null
+  return function() {
+    const context = this
+    const args = arguments
+    clearTimeout(timer)
+    timer = setTimeout(() => {
+      fn.apply(context, args)
+    }, delay)
+  }
+}
 
 export default {
   name: 'CampusCourseManage',
-  components: { Pagination },
+  components: {},
   directives: { waves },
   filters: {
     statusFilter(status) {
       const statusMap = {
-        0: 'warning',
-        1: 'success',
-        2: 'danger',
-        3: 'info'
+        'PENDING': 'warning',
+        'CONFIRMED': 'success',
+        'CANCELLED': 'danger',
+        'COMPLETED': 'info'
       }
       return statusMap[status]
     },
     statusNameFilter(status) {
       const statusNameMap = {
-        0: '待确认',
-        1: '已确认',
-        2: '已取消',
-        3: '已完成'
+        'PENDING': '待确认',
+        'CONFIRMED': '已确认',
+        'CANCELLED': '已取消',
+        'COMPLETED': '已完成'
       }
       return statusNameMap[status]
     }
@@ -181,24 +169,20 @@ export default {
   data() {
     return {
       tableKey: 0,
-      list: null,
+      list: null, // 用于显示的筛选后的数据
+      allCourses: null, // 存储从API获取的完整原始数据
       total: 0,
       listLoading: true,
       listQuery: {
-        page: 1,
-        limit: 20,
         name: undefined,
-        coachId: undefined,
-        status: undefined,
-        dateRange: []
+        status: undefined
       },
       statusOptions: [
-        { key: 0, display_name: '待确认' },
-        { key: 1, display_name: '已确认' },
-        { key: 2, display_name: '已取消' },
-        { key: 3, display_name: '已完成' }
+        { key: 'PENDING', display_name: '待确认' },
+        { key: 'CONFIRMED', display_name: '已确认' },
+        { key: 'CANCELLED', display_name: '已取消' },
+        { key: 'COMPLETED', display_name: '已完成' }
       ],
-      coachOptions: [],
       detailDialogVisible: false,
       courseDetail: {},
       downloadLoading: false
@@ -206,36 +190,75 @@ export default {
   },
   created() {
     this.getList()
-    this.loadCoaches()
   },
   methods: {
     async getList() {
       this.listLoading = true
       try {
-        const response = await getCourseList(this.listQuery)
+        // 从用户信息中获取当前校区管理员的campusId
+        const userInfo = this.$store.getters.userInfo || { campusId: 2 } // 默认值为2，实际应该从store获取
+        const campusId = userInfo.campusId
+        
+        // 获取完整数据，不传递筛选参数
+        const response = await getCampusCourses(campusId)
         if (response.code === 200) {
-          this.list = response.data.records
-          this.total = response.data.total
+          // 由于API直接返回数组，需要进行格式化处理
+          this.allCourses = response.data.map(course => {
+            // 格式化日期时间
+            const startDate = new Date(course.startTime)
+            const formattedDate = startDate.toLocaleDateString('zh-CN')
+            const formattedStartTime = startDate.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+            const endDate = new Date(course.endTime)
+            const formattedEndTime = endDate.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+            
+            return {
+              ...course,
+              courseDate: formattedDate,
+              startTime: formattedStartTime,
+              endTime: formattedEndTime,
+              createTime: new Date(course.createdAt).toLocaleString('zh-CN')
+            }
+          })
+          
+          // 初始化时显示全部数据
+          this.applyFilter()
         }
       } catch (error) {
         console.error('获取课程列表失败:', error)
       }
       this.listLoading = false
     },
-    async loadCoaches() {
-      try {
-        const response = await getCoachList({ page: 1, limit: 100 })
-        if (response.code === 200) {
-          this.coachOptions = response.data.records
-        }
-      } catch (error) {
-        console.error('获取教练列表失败:', error)
+    // 在前端进行筛选
+    applyFilter() {
+      if (!this.allCourses) {
+        this.list = null
+        this.total = 0
+        return
       }
+      
+      let filteredList = [...this.allCourses]
+      
+      // 按姓名筛选（教练姓名或学生姓名）
+      if (this.listQuery.name) {
+        const searchName = this.listQuery.name.toLowerCase()
+        filteredList = filteredList.filter(item => 
+          (item.coachName && item.coachName.toLowerCase().includes(searchName)) ||
+          (item.studentName && item.studentName.toLowerCase().includes(searchName))
+        )
+      }
+      
+      // 按状态筛选
+      if (this.listQuery.status) {
+        filteredList = filteredList.filter(item => item.status === this.listQuery.status)
+      }
+      
+      this.list = filteredList
+      this.total = filteredList.length
     },
-    handleFilter() {
-      this.listQuery.page = 1
-      this.getList()
-    },
+    // 使用防抖优化handleFilter方法
+    handleFilter: debounce(function() {
+      this.applyFilter()
+    }, 300),
     handleDetail(row) {
       this.courseDetail = row
       this.detailDialogVisible = true
@@ -248,7 +271,7 @@ export default {
       }).then(() => {
         adminConfirmCourse(row.id).then(response => {
           if (response.code === 200) {
-            row.status = 1
+            row.status = 'CONFIRMED'
             this.$notify({
               title: '成功',
               message: '课程已确认',
@@ -267,7 +290,7 @@ export default {
       }).then(() => {
         adminCancelCourse(row.id).then(response => {
           if (response.code === 200) {
-            row.status = 2
+            row.status = 'CANCELLED'
             this.$notify({
               title: '成功',
               message: '课程已取消',
@@ -281,8 +304,8 @@ export default {
     handleDownload() {
       this.downloadLoading = true
       import('@/utils/export2excel').then(excel => {
-        const tHeader = ['ID', '课程名称', '教练姓名', '学员姓名', '课程日期', '上课时间', '球台号', '课程费用', '课程状态', '创建时间']
-        const filterVal = ['id', 'name', 'coachName', 'studentName', 'courseDate', 'startTime', 'tableNumber', 'fee', 'status', 'createTime']
+        const tHeader = ['ID', '教练姓名', '学员姓名', '课程日期', '上课时间', '球台号', '课时', '课程费用', '课程状态', '创建时间']
+        const filterVal = ['id', 'coachName', 'studentName', 'startTime', 'startTime', 'courtNumber', 'duration', 'fee', 'status', 'createdAt']
         const data = this.formatJson(filterVal)
         excel.export_json_to_excel({
           header: tHeader,
@@ -293,14 +316,17 @@ export default {
       })
     },
     formatJson(filterVal) {
-      return this.list.map(v => filterVal.map(j => {
-        if (j === 'courseDate') {
-          return parseTime(v[j], '{y}-{m}-{d}')
+      // 使用allCourses而非list，确保导出所有数据
+      return (this.allCourses || []).map(v => filterVal.map(j => {
+        if (j === 'startTime' && filterVal.indexOf(j) === 3) {
+          return v.courseDate
+        } else if (j === 'startTime' && filterVal.indexOf(j) === 4) {
+          return `${v.startTime} - ${v.endTime}`
         } else if (j === 'status') {
-          const statusMap = { 0: '待确认', 1: '已确认', 2: '已取消', 3: '已完成' }
+          const statusMap = { 'PENDING': '待确认', 'CONFIRMED': '已确认', 'CANCELLED': '已取消', 'COMPLETED': '已完成' }
           return statusMap[v[j]]
-        } else if (j === 'createTime') {
-          return parseTime(v[j])
+        } else if (j === 'createdAt') {
+          return v.createTime
         } else {
           return v[j]
         }

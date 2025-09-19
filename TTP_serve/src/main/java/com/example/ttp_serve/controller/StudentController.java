@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 学员管理控制器
@@ -104,6 +106,59 @@ public class StudentController {
     }
 
     /**
+     * 根据校区ID获取所有学生信息
+     *
+     * @param campusId 校区ID
+     * @return 该校区下的所有学生信息列表
+     */
+    @GetMapping("/campus/{campusId}")
+    @Operation(summary = "根据校区ID获取所有学生", description = "根据校区ID获取该校区下的所有学生信息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功"),
+            @ApiResponse(responseCode = "404", description = "校区不存在"),
+            @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
+    public ResponseEntity<MyApiResponse<List<StudentDTO>>> getStudentsByCampusId(
+            @Parameter(description = "校区ID", required = true, example = "1")
+            @PathVariable Long campusId) {
+        try {
+            List<Student> students = studentService.getStudentsByCampusId(campusId);
+            List<StudentDTO> studentDTOs = students.stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", studentDTOs));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
+    }
+
+    /**
+     * 根据校区ID统计学生数量
+     *
+     * @param campusId 校区ID
+     * @return 该校区下的学生数量
+     */
+    @GetMapping("/campus/{campusId}/count")
+    @Operation(summary = "统计校区学生数量", description = "根据校区ID统计该校区下的学生数量")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功"),
+            @ApiResponse(responseCode = "404", description = "校区不存在"),
+            @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
+    public ResponseEntity<MyApiResponse<Long>> countStudentsByCampusId(
+            @Parameter(description = "校区ID", required = true, example = "1")
+            @PathVariable Long campusId) {
+        try {
+            Long count = studentService.countStudentsByCampusId(campusId);
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", count));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
+    }
+
+    /**
      * 将Student实体转换为StudentDTO
      *
      * @param student 学生实体
@@ -129,5 +184,50 @@ public class StudentController {
         dto.setCreatedAt(student.getCreatedAt());
         dto.setUpdatedAt(student.getUpdatedAt());
         return dto;
+    }
+
+    /**
+     * 获取所有学生信息
+     *
+     * @return 所有学生信息列表
+     */
+    @GetMapping("/all")
+    @Operation(summary = "获取所有学生", description = "获取系统中所有学生的信息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功"),
+            @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
+    public ResponseEntity<MyApiResponse<List<StudentDTO>>> getAllStudents() {
+        try {
+            List<Student> students = studentService.getAllStudents();
+            List<StudentDTO> studentDTOs = students.stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", studentDTOs));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
+    }
+
+    /**
+     * 统计所有学生数量
+     *
+     * @return 学生总数
+     */
+    @GetMapping("/count")
+    @Operation(summary = "统计所有学生数量", description = "获取系统中所有学生的总数量")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "统计成功"),
+            @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
+    public ResponseEntity<MyApiResponse<Long>> countAllStudents() {
+        try {
+            Long count = studentService.countAllStudents();
+            return ResponseEntity.ok(MyApiResponse.success("统计成功", count));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
     }
 }

@@ -65,10 +65,13 @@ export function getTotalStudentCount() {
     method: 'get'
   }).then(response => {
     // 响应格式：{ code: 200, message: "获取成功", data: 6 }
-    return response.data
+    if (response && response.code === 200) {
+      return response.data
+    }
+    return 0
   }).catch(error => {
     console.error('获取学员总数失败:', error)
-    throw error
+    return 0
   })
 }
 
@@ -79,8 +82,11 @@ export function getCampusAdminsPage(params) {
     method: 'get',
     params
   }).then(response => {
-    // 响应格式：{ code: 200, message: "获取成功", data: { records: [...], total: 0 } }
-    return response.data
+    // 响应格式：{ code: 200, message: "获取成功", data: { content: [...], totalElements: 0 } }
+    if (response && response.code === 200) {
+      return response.data
+    }
+    throw new Error('获取校区管理员列表失败')
   }).catch(error => {
     console.error('获取校区管理员列表失败:', error)
     throw error
@@ -136,7 +142,11 @@ export function getCampuses(params) {
     method: 'get',
     params
   }).then(response => {
-    return response.data
+    // 兼容新的API格式
+    if (response && response.code === 200) {
+      return response.data
+    }
+    return response
   }).catch(error => {
     console.error('获取校区列表失败:', error)
     throw error

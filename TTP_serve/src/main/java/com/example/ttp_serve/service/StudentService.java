@@ -3,6 +3,7 @@ package com.example.ttp_serve.service;
 import com.example.ttp_serve.entity.Student;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 学员服务接口
@@ -30,4 +31,30 @@ public interface StudentService {
      * @return 本月取消次数
      */
     Integer getCurrentMonthCancelCount(Long studentId);
+
+    /**
+     * 根据校区ID获取所有学生信息
+     * @param campusId 校区ID
+     * @return 该校区下的所有学生列表
+     */
+    List<Student> getStudentsByCampusId(Long campusId);
+
+    /**
+     * 统计指定校区的学生数量
+     * @param campusId 校区ID
+     * @return 该校区下的学生数量
+     */
+    Long countStudentsByCampusId(Long campusId);
+
+    /**
+     * 获取所有学生信息
+     * @return 所有学生列表
+     */
+    List<Student> getAllStudents();
+
+    /**
+     * 统计所有学生数量
+     * @return 学生总数
+     */
+    Long countAllStudents();
 }

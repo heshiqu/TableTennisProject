@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * 学员服务实现类
@@ -55,5 +56,25 @@ public class StudentServiceImpl implements StudentService {
         }
         
         return 0;
+    }
+
+    @Override
+    public List<Student> getStudentsByCampusId(Long campusId) {
+        return studentRepository.findByCampusId(campusId);
+    }
+
+    @Override
+    public Long countStudentsByCampusId(Long campusId) {
+        return studentRepository.countByCampusId(campusId);
+    }
+
+    @Override
+    public List<Student> getAllStudents() {
+        return studentRepository.findAll();
+    }
+
+    @Override
+    public Long countAllStudents() {
+        return studentRepository.count();
     }
 }

@@ -17,7 +17,7 @@
       
       <div class="data-row" style="margin-top: 20px;">
         <el-row :gutter="32">
-          <el-col :xs="24" :sm="12" :lg="6">
+          <el-col :xs="24" :sm="12" :lg="8">
             <div class="data-card">
               <div class="data-header">
                 <div class="data-title">校区数量</div>
@@ -32,7 +32,7 @@
             </div>
           </el-col>
           
-          <el-col :xs="24" :sm="12" :lg="6">
+          <el-col :xs="24" :sm="12" :lg="8">
             <div class="data-card">
               <div class="data-header">
                 <div class="data-title">学员总数</div>
@@ -47,7 +47,7 @@
             </div>
           </el-col>
           
-          <el-col :xs="24" :sm="12" :lg="6">
+          <el-col :xs="24" :sm="12" :lg="8">
             <div class="data-card">
               <div class="data-header">
                 <div class="data-title">教练总数</div>
@@ -62,20 +62,7 @@
             </div>
           </el-col>
           
-          <el-col :xs="24" :sm="12" :lg="6">
-            <div class="data-card">
-              <div class="data-header">
-                <div class="data-title">校区管理员</div>
-                <div class="data-icon admin-icon">
-                  <i class="el-icon-s-custom" />
-                </div>
-              </div>
-              <div class="data-content">
-                <count-to :start-val="0" :end-val="campusAdminCount" :duration="2600" class="data-number" />
-              </div>
-              <div class="data-desc">校区管理员数量</div>
-            </div>
-          </el-col>
+
         </el-row>
       </div>
 
@@ -96,15 +83,24 @@
         <el-col :span="12">
           <el-card>
             <div slot="header" class="clearfix">
-              <span>超级管理员快捷操作</span>
+              <span>待办事项</span>
             </div>
-            <div class="quick-actions">
-              <el-button type="primary" icon="el-icon-office-building" @click="goToCampusManage">校区管理</el-button>
-              <el-button type="success" icon="el-icon-user-solid" @click="goToCampusAdminManage">校区管理员</el-button>
-              <el-button type="warning" icon="el-icon-user" @click="goToAllStudents">所有学员</el-button>
-              <el-button type="info" icon="el-icon-user-solid" @click="goToAllCoaches">所有教练</el-button>
-              <el-button type="danger" icon="el-icon-key" @click="goToLicenseManage">许可证管理</el-button>
-              <el-button type="primary" icon="el-icon-setting" @click="goToSystemManage">系统设置</el-button>
+            <div class="todo-list">
+              <div class="todo-item">
+                <i class="el-icon-bell" style="color: #E6A23C; margin-right: 8px;"></i>
+                <span>新教练入驻申请待审核</span>
+                <el-tag size="mini" type="warning">3条</el-tag>
+              </div>
+              <div class="todo-item">
+                <i class="el-icon-message" style="color: #409EFF; margin-right: 8px;"></i>
+                <span>学员反馈待处理</span>
+                <el-tag size="mini" type="info">5条</el-tag>
+              </div>
+              <div class="todo-item">
+                <i class="el-icon-warning" style="color: #F56C6C; margin-right: 8px;"></i>
+                <span>系统异常待处理</span>
+                <el-tag size="mini" type="danger">1条</el-tag>
+              </div>
             </div>
           </el-card>
         </el-col>
@@ -123,6 +119,23 @@
               <el-table-column prop="target" label="操作对象" />
               <el-table-column prop="createTime" label="操作时间" width="180" />
             </el-table>
+          </el-card>
+        </el-col>
+      </el-row>
+
+      <el-row :gutter="20" style="margin-top: 30px;">
+        <el-col :span="24">
+          <el-card>
+            <div slot="header" class="clearfix">
+              <span>超级管理员快捷操作</span>
+            </div>
+            <div class="quick-actions">
+              <el-button type="primary" icon="el-icon-office-building" @click="goToCampusManage">校区管理</el-button>
+              <el-button type="warning" icon="el-icon-user" @click="goToAllStudents">所有学员</el-button>
+              <el-button type="info" icon="el-icon-user-solid" @click="goToAllCoaches">所有教练</el-button>
+              <el-button type="danger" icon="el-icon-key" @click="goToLicenseManage">许可证管理</el-button>
+              <el-button type="primary" icon="el-icon-setting" @click="goToSystemManage">系统设置</el-button>
+            </div>
           </el-card>
         </el-col>
       </el-row>
@@ -150,7 +163,6 @@ export default {
       campusCount: 0,
       studentCount: 0,
       coachCount: 0,
-      campusAdminCount: 0,
       notices: [],
       logs: []
     }
@@ -192,17 +204,6 @@ export default {
         console.error('获取教练总数失败:', error)
         this.coachCount = 0
       }
-      
-      // 获取校区管理员数量（从系统数据获取）
-      try {
-        const response = await getDashboardData()
-        if (response.code === 200) {
-          this.campusAdminCount = response.data.campusAdminCount || 0
-        }
-      } catch (error) {
-        console.error('获取校区管理员数量失败:', error)
-        this.campusAdminCount = 0
-      }
     },
     async loadNotices() {
       try {
@@ -225,25 +226,23 @@ export default {
       }
     },
     addNotice() {
-      this.$router.push('/admin/notice/add')
+      this.$router.push('/super-admin/notices')
     },
     goToCampusManage() {
       this.$router.push('/campus-manage')
     },
-    goToCampusAdminManage() {
-      this.$router.push('/campus-admin-manage')
-    },
+
     goToAllStudents() {
-      this.$router.push('/admin/students')
+      this.$router.push('/super-admin/all-students')
     },
     goToAllCoaches() {
-      this.$router.push('/admin/coaches')
+      this.$router.push('/super-admin/all-coaches')
     },
     goToLicenseManage() {
       this.$router.push('/license-manage')
     },
     goToSystemManage() {
-      this.$router.push('/admin/settings')
+      this.$router.push('/super-admin/settings')
     },
     viewAllLogs() {
       this.$router.push('/system-logs')
@@ -296,9 +295,7 @@ export default {
           background: #E6A23C;
         }
         
-        &.admin-icon {
-          background: #722ed1;
-        }
+
       }
     }
     
@@ -347,6 +344,26 @@ export default {
   .quick-actions {
     .el-button {
       margin: 5px;
+    }
+  }
+
+  .todo-list {
+    padding: 10px 0;
+  }
+
+  .todo-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    span {
+      flex: 1;
+      margin-right: 10px;
     }
   }
 }

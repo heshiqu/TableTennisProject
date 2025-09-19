@@ -32,9 +32,9 @@ public class CampusController {
             @ApiResponse(responseCode = "200", description = "获取成功"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<List<CampusResponseDTO>> getAllCampuses() {
+    public ResponseEntity<MyApiResponse<List<CampusResponseDTO>>> getAllCampuses() {
         List<CampusResponseDTO> campuses = campusService.getAllCampuses();
-        return ResponseEntity.ok(campuses);
+        return ResponseEntity.ok(MyApiResponse.success("获取成功", campuses));
     }
 
     @GetMapping("/page")
@@ -56,10 +56,10 @@ public class CampusController {
             @ApiResponse(responseCode = "404", description = "校区不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<CampusResponseDTO> getCampusById(
+    public ResponseEntity<MyApiResponse<CampusResponseDTO>> getCampusById(
             @Parameter(description = "校区ID", required = true) @PathVariable Long id) {
         CampusResponseDTO campus = campusService.getCampusById(id);
-        return ResponseEntity.ok(campus);
+        return ResponseEntity.ok(MyApiResponse.success("获取成功", campus));
     }
 
     @PostMapping
@@ -70,10 +70,10 @@ public class CampusController {
             @ApiResponse(responseCode = "403", description = "权限不足"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<CampusResponseDTO> createCampus(
+    public ResponseEntity<MyApiResponse<CampusResponseDTO>> createCampus(
             @Parameter(description = "校区信息", required = true) @RequestBody CampusRequestDTO campusRequestDTO) {
         CampusResponseDTO createdCampus = campusService.createCampus(campusRequestDTO);
-        return ResponseEntity.ok(createdCampus);
+        return ResponseEntity.ok(MyApiResponse.success("创建成功", createdCampus));
     }
 
     @PutMapping("/{id}")
@@ -85,11 +85,11 @@ public class CampusController {
             @ApiResponse(responseCode = "404", description = "校区不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<CampusResponseDTO> updateCampus(
+    public ResponseEntity<MyApiResponse<CampusResponseDTO>> updateCampus(
             @Parameter(description = "校区ID", required = true) @PathVariable Long id,
             @Parameter(description = "校区信息", required = true) @RequestBody CampusRequestDTO campusRequestDTO) {
         CampusResponseDTO updatedCampus = campusService.updateCampus(id, campusRequestDTO);
-        return ResponseEntity.ok(updatedCampus);
+        return ResponseEntity.ok(MyApiResponse.success("更新成功", updatedCampus));
     }
 
     @DeleteMapping("/{id}")
@@ -101,10 +101,10 @@ public class CampusController {
             @ApiResponse(responseCode = "404", description = "校区不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<Void> deleteCampus(
+    public ResponseEntity<MyApiResponse<Void>> deleteCampus(
             @Parameter(description = "校区ID", required = true) @PathVariable Long id) {
         campusService.deleteCampus(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(MyApiResponse.success("删除成功", null));
     }
 
     @GetMapping("/top-level")
@@ -113,9 +113,9 @@ public class CampusController {
             @ApiResponse(responseCode = "200", description = "获取成功"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<List<CampusResponseDTO>> getTopLevelCampuses() {
+    public ResponseEntity<MyApiResponse<List<CampusResponseDTO>>> getTopLevelCampuses() {
         List<CampusResponseDTO> campuses = campusService.getTopLevelCampuses();
-        return ResponseEntity.ok(campuses);
+        return ResponseEntity.ok(MyApiResponse.success("获取成功", campuses));
     }
 
     @GetMapping("/{id}/children")
@@ -125,10 +125,10 @@ public class CampusController {
             @ApiResponse(responseCode = "404", description = "校区不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<List<CampusResponseDTO>> getChildCampuses(
+    public ResponseEntity<MyApiResponse<List<CampusResponseDTO>>> getChildCampuses(
             @Parameter(description = "校区ID", required = true) @PathVariable Long id) {
         List<CampusResponseDTO> campuses = campusService.getChildCampuses(id);
-        return ResponseEntity.ok(campuses);
+        return ResponseEntity.ok(MyApiResponse.success("获取成功", campuses));
     }
 
     @GetMapping("/search")
@@ -137,10 +137,10 @@ public class CampusController {
             @ApiResponse(responseCode = "200", description = "搜索成功"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<List<CampusResponseDTO>> searchCampuses(
+    public ResponseEntity<MyApiResponse<List<CampusResponseDTO>>> searchCampuses(
             @Parameter(description = "校区名称", required = true) @RequestParam String name) {
         List<CampusResponseDTO> campuses = campusService.searchCampusesByName(name);
-        return ResponseEntity.ok(campuses);
+        return ResponseEntity.ok(MyApiResponse.success("搜索成功", campuses));
     }
 
     @GetMapping("/{id}/with-children")
@@ -150,10 +150,10 @@ public class CampusController {
             @ApiResponse(responseCode = "404", description = "校区不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<List<CampusResponseDTO>> getCampusWithChildren(
+    public ResponseEntity<MyApiResponse<List<CampusResponseDTO>>> getCampusWithChildren(
             @Parameter(description = "校区ID", required = true) @PathVariable Long id) {
         List<CampusResponseDTO> campuses = campusService.getCampusWithChildren(id);
-        return ResponseEntity.ok(campuses);
+        return ResponseEntity.ok(MyApiResponse.success("获取成功", campuses));
     }
 
     @GetMapping("/tree")
@@ -162,9 +162,9 @@ public class CampusController {
             @ApiResponse(responseCode = "200", description = "获取成功"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<List<CampusResponseDTO>> getCampusTree() {
+    public ResponseEntity<MyApiResponse<List<CampusResponseDTO>>> getCampusTree() {
         List<CampusResponseDTO> campuses = campusService.getCampusTree();
-        return ResponseEntity.ok(campuses);
+        return ResponseEntity.ok(MyApiResponse.success("获取成功", campuses));
     }
 
     @GetMapping("/{id}/stats")
@@ -174,10 +174,10 @@ public class CampusController {
             @ApiResponse(responseCode = "404", description = "校区不存在"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<CampusStatsDTO> getCampusStats(
+    public ResponseEntity<MyApiResponse<CampusStatsDTO>> getCampusStats(
             @Parameter(description = "校区ID", required = true) @PathVariable Long id) {
         CampusStatsDTO stats = campusService.getCampusStats(id);
-        return ResponseEntity.ok(stats);
+        return ResponseEntity.ok(MyApiResponse.success("获取成功", stats));
     }
 
     @GetMapping("/count")
@@ -186,9 +186,9 @@ public class CampusController {
             @ApiResponse(responseCode = "200", description = "获取成功"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<Long> getTotalCampusCount() {
+    public ResponseEntity<MyApiResponse<Long>> getTotalCampusCount() {
         Long count = campusService.countCampuses();
-        return ResponseEntity.ok(count);
+        return ResponseEntity.ok(MyApiResponse.success("获取成功", count));
     }
 
     @GetMapping("/{id}/count/children")
@@ -197,9 +197,9 @@ public class CampusController {
             @ApiResponse(responseCode = "200", description = "获取成功"),
             @ApiResponse(responseCode = "500", description = "服务器内部错误")
     })
-    public ResponseEntity<Long> getChildCampusCount(
+    public ResponseEntity<MyApiResponse<Long>> getChildCampusCount(
             @Parameter(description = "校区ID", required = true) @PathVariable Long id) {
         Long count = campusService.countChildCampuses(id);
-        return ResponseEntity.ok(count);
+        return ResponseEntity.ok(MyApiResponse.success("获取成功", count));
     }
 }

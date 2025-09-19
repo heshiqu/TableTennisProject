@@ -36,6 +36,12 @@ public class CoachServiceImpl implements CoachService {
     }
 
     @Override
+    public List<CoachDTO> getAllCoaches() {
+        List<Coach> coaches = coachRepository.findAll();
+        return coaches.stream().map(this::convertToDTO).collect(Collectors.toList());
+    }
+
+    @Override
     public CoachDTO getCoachDetail(Long coachId) {
         Coach coach = coachRepository.findById(coachId)
                 .orElseThrow(() -> new RuntimeException("未找到ID为 " + coachId + " 的教练"));
@@ -80,6 +86,18 @@ public class CoachServiceImpl implements CoachService {
         dto.setPhone(coach.getPhone());
         dto.setEmail(coach.getEmail());
         dto.setAvatar(coach.getAvatar()); // 教练照片
+        dto.setUserType(coach.getUserType()); // 用户类型
+        dto.setStatus(coach.getStatus()); // 用户状态
+        dto.setCreatedAt(coach.getCreatedAt()); // 创建时间
+        dto.setUpdatedAt(coach.getUpdatedAt()); // 更新时间
+        
+        // 设置校区信息
+        if (coach.getCampus() != null) {
+            dto.setCampusId(coach.getCampus().getId());
+            dto.setCampusName(coach.getCampus().getName());
+        }
+        
+        // 教练特有字段
         dto.setLevel(coach.getLevel());
         dto.setAwards(coach.getAwards()); // 获奖信息
         dto.setHourlyRate(coach.getHourlyRate());

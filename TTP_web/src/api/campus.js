@@ -46,13 +46,7 @@ export function deleteCampus(id) {
   })
 }
 
-// 获取当前用户所在校区
-export function getUserCampus() {
-  return request({
-    url: '/api/campuses/user',
-    method: 'get'
-  })
-}
+
 
 // 获取校区负责人列表
 export function getManagers(params) {
@@ -71,6 +65,23 @@ export function getCampusStats(id) {
   })
 }
 
+// 获取当前校区信息
+export function getCampusInfo() {
+  return request({
+    url: '/api/campuses/current',
+    method: 'get'
+  })
+}
+
+// 更新校区信息
+export function updateCampusInfo(data) {
+  return request({
+    url: '/api/campuses/current',
+    method: 'put',
+    data
+  })
+}
+
 // 获取校区总数
 export function getTotalCampusCount() {
   return axios({
@@ -78,10 +89,14 @@ export function getTotalCampusCount() {
     method: 'get',
     baseURL: process.env.VUE_APP_BASE_API
   }).then(response => {
-    return response.data
+    // 响应格式：{ code: 200, message: "获取成功", data: 3 }
+    if (response.data && response.data.code === 200) {
+      return response.data.data
+    }
+    return 0
   }).catch(error => {
     console.error('获取校区总数失败:', error)
-    throw error
+    return 0
   })
 }
 
@@ -91,5 +106,46 @@ export function assignCampusManager(data) {
     url: '/api/campuses/assign-manager',
     method: 'post',
     data
+  })
+}
+
+// 获取校区仪表板数据
+export function getCampusDashboard() {
+  return request({
+    url: '/api/campuses/dashboard',
+    method: 'get'
+  })
+}
+
+// 获取校区公告
+export function getCampusAnnouncements() {
+  return request({
+    url: '/api/campuses/announcements',
+    method: 'get'
+  })
+}
+
+// 创建校区公告
+export function createCampusAnnouncement(data) {
+  return request({
+    url: '/api/campuses/announcements',
+    method: 'post',
+    data
+  })
+}
+
+// 获取待处理事项
+export function getCampusPendingItems() {
+  return request({
+    url: '/api/campuses/pending-items',
+    method: 'get'
+  })
+}
+
+// 获取校区学员数量
+export function getCampusStudentCount(campusId) {
+  return request({
+    url: `/api/users/count/students/campus/${campusId}`,
+    method: 'get'
   })
 }

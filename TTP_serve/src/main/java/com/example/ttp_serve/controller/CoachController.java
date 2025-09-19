@@ -94,4 +94,25 @@ public class CoachController {
                     .body(MyApiResponse.error(400, e.getMessage()));
         }
     }
+
+    /**
+     * 获取所有教练信息
+     *
+     * @return 所有教练信息列表
+     */
+    @GetMapping("/all")
+    @Operation(summary = "获取所有教练", description = "获取系统中所有教练的详细信息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功"),
+            @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
+    public ResponseEntity<MyApiResponse<List<CoachDTO>>> getAllCoaches() {
+        try {
+            List<CoachDTO> coaches = coachService.getAllCoaches();
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", coaches));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
+    }
 }

@@ -93,15 +93,20 @@ export function getUserDetail(userId) {
   })
 }
 
-// 获取教练总数 - 使用原生axios绕过拦截器，直接返回数字
+// 获取教练总数
 export function getTotalCoachCount() {
-  // 使用原生axios避免request.js的响应包装
-  return axios({
+  return request({
     url: '/api/coaches/count',
-    method: 'get',
-    baseURL: process.env.VUE_APP_BASE_API
+    method: 'get'
   }).then(response => {
-    return response.data
+    // 返回格式: { code: 200, message: "统计成功", data: 4, timestamp: ... }
+    if (response && response.code === 200) {
+      return response.data
+    }
+    return 0
+  }).catch(error => {
+    console.error('获取教练总数失败:', error)
+    return 0
   })
 }
 
@@ -177,6 +182,14 @@ export function getCoachCompletedCourses(coachId, params = {}) {
 export function getCoachPendingCourses(coachId) {
   return request({
     url: `/api/courses/coach/${coachId}/status/PENDING`,
+    method: 'get'
+  })
+}
+
+// 获取指定校区的教练列表
+export function getCoachesByCampus(campusId) {
+  return request({
+    url: `/api/coaches/campus/${campusId}`,
     method: 'get'
   })
 }

@@ -170,5 +170,33 @@ module.exports = [
         data: coach
       }
     }
+  },
+
+  // 获取教练总数
+  {
+    url: '/api/coaches/count',
+    type: 'get',
+    response: () => {
+      return {
+        code: 200,
+        message: '获取成功',
+        data: coaches.length,
+        timestamp: +new Date()
+      }
+    }
+  },
+
+  // 获取所有教练（无分页）
+  {
+    url: '/api/coaches/all',
+    type: 'get',
+    response: () => {
+      return {
+        code: 200,
+        message: '获取成功',
+        data: coaches,
+        timestamp: +new Date()
+      }
+    }
   }
 ]

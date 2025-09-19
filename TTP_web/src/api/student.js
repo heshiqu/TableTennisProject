@@ -1,6 +1,14 @@
 import request from '@/utils/request'
 
-// 学员管理API
+// 学员管理API - 校区管理员获取本校学员列表
+export function getStudentListByCampus(campusId) {
+  return request({
+    url: `/api/students/campus/${campusId}`,
+    method: 'get'
+  })
+}
+
+// 兼容旧接口
 export function getStudentList(params) {
   return request({
     url: '/api/users/type/STUDENT/page',

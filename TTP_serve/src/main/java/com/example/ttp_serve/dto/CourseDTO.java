@@ -25,4 +25,7 @@ public class CourseDTO {
     private LocalDateTime cancelTime;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    // 课程所属校区信息
+    private Long campusId;
+    private String campusName;
 }

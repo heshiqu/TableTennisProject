@@ -109,4 +109,50 @@ public interface CourseService {
      * @return 本月已完成课程的总收入
      */
     BigDecimal getCoachMonthlyIncome(Long coachId);
+    
+    /**
+     * 获取今日已确认课程数目
+     * 
+     * @return 今日已确认的课程数量
+     */
+    Long countTodayConfirmedCourses();
+    
+    /**
+     * 获取指定教练今日已确认课程数目
+     * 
+     * @param coachId 教练ID
+     * @return 指定教练今日已确认的课程数量
+     */
+    Long countTodayConfirmedCoursesByCoach(Long coachId);
+    
+    /**
+     * 获取指定学员今日已确认课程数目
+     * 
+     * @param studentId 学员ID
+     * @return 指定学员今日已确认的课程数量
+     */
+    Long countTodayConfirmedCoursesByStudent(Long studentId);
+    
+    /**
+     * 获取指定校区今日已确认课程数目
+     * 
+     * @param campusId 校区ID
+     * @return 指定校区今日已确认的课程数量
+     */
+    Long countTodayConfirmedCoursesByCampus(Long campusId);
+    
+    /**
+     * 获取所有课程列表
+     * 
+     * @return 所有课程列表
+     */
+    List<Course> getAllCoursesList();
+    
+    /**
+     * 根据校区ID获取所有课程
+     * 
+     * @param campusId 校区ID
+     * @return 指定校区的所有课程列表
+     */
+    List<Course> getCoursesByCampusId(Long campusId);
 }

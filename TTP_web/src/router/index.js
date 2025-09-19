@@ -140,17 +140,7 @@ export const constantRoutes = [
       meta: { title: '训练记录', icon: 'documentation' }
     }]
   },
-  {
-    path: '/student-account',
-    component: Layout,
-    name: 'StudentAccount',
-    meta: { title: '账户管理', icon: 'money', roles: ['STUDENT'] },
-    children: [{
-      path: '/student-account',
-      component: () => import('@/views/student/account'),
-      meta: { title: '账户管理', icon: 'money' }
-    }]
-  },
+  {    path: '/student-account',    component: Layout,    name: 'StudentAccount',    meta: { title: '账户管理', icon: 'money', roles: ['STUDENT'] },    children: [{      path: '',      component: () => import('@/views/student/account'),      meta: { title: '账户管理', icon: 'money' }    }]  },
   {
     path: '/tournament',
     component: Layout,
@@ -202,7 +192,7 @@ export const constantRoutes = [
     name: 'CoachStudents',
     meta: { title: '我的学员', icon: 'peoples', roles: ['COACH'] },
     children: [{
-      path: '/coach-students',
+      path: '',
       component: () => import('@/views/coach/students'),
       meta: { title: '我的学员', icon: 'peoples' }
     }]
@@ -213,7 +203,7 @@ export const constantRoutes = [
     name: 'CoachSchedule',
     meta: { title: '课表管理', icon: 'calendar', roles: ['COACH'] },
     children: [{
-      path: '/coach-schedule',
+      path: '',
       component: () => import('@/views/course/CoachSchedule'),
       meta: { title: '课表管理', icon: 'calendar' }
     }]
@@ -224,7 +214,7 @@ export const constantRoutes = [
     name: 'CoachAppointments',
     meta: { title: '预约审核', icon: 'time', roles: ['COACH'] },
     children: [{
-      path: '/coach-appointments',
+      path: '',
       component: () => import('@/views/coach/appointments'),
       meta: { title: '预约审核', icon: 'time' }
     }]
@@ -235,7 +225,7 @@ export const constantRoutes = [
     name: 'TrainingRecords',
     meta: { title: '训练记录', icon: 'documentation', roles: ['COACH'] },
     children: [{
-      path: '/coach-training-records',
+      path: '',
       component: () => import('@/views/coach/training-records'),
       meta: { title: '训练记录', icon: 'documentation' }
     }]
@@ -248,7 +238,7 @@ export const constantRoutes = [
     name: 'SuperAdminDashboard',
     meta: { title: '超级管理首页', icon: 'dashboard', roles: ['SUPER_ADMIN'] },
     children: [{
-      path: '/super-admin-dashboard',
+      path: '',
       component: () => import('@/views/super-admin/dashboard'),
       meta: { title: '超级管理首页', icon: 'dashboard' }
     }]
@@ -259,7 +249,7 @@ export const constantRoutes = [
     name: 'CampusManage',
     meta: { title: '校区管理', icon: 'building', roles: ['SUPER_ADMIN'] },
     children: [{
-      path: '/campus-manage',
+      path: '',
       component: () => import('@/views/super-admin/campus-management'),
       meta: { title: '校区管理', icon: 'building' }
     }]
@@ -270,86 +260,77 @@ export const constantRoutes = [
     name: 'CampusAdminManage',
     meta: { title: '校区管理员', icon: 'user-solid', roles: ['SUPER_ADMIN'] },
     children: [{
-      path: '/campus-admin-manage',
-      component: () => import('@/views/admin/campus-admin'),
+      path: '',
+      component: () => import('@/views/super-admin/campus-admin-management'),
       meta: { title: '校区管理员', icon: 'user-solid' }
     }]
   },
 
   {
-    path: '/admin-dashboard',
+    path: '/super-admin-students',
     component: Layout,
-    name: 'AdminDashboard',
-    meta: { title: '管理首页', icon: 'dashboard', roles: ['ADMIN'] },
+    name: 'SuperAdminStudents',
+    meta: { title: '学员管理', icon: 'peoples', roles: ['SUPER_ADMIN'] },
     children: [{
-      path: '/admin-dashboard',
-      component: () => import('@/views/admin/dashboard'),
-      meta: { title: '管理首页', icon: 'dashboard' }
-    }]
-  },
-  {
-    path: '/admin-students',
-    component: Layout,
-    name: 'StudentManage',
-    meta: { title: '学员管理', icon: 'peoples', roles: ['ADMIN', 'SUPER_ADMIN'] },
-    children: [{
-      path: '/admin-students',
-      component: () => import('@/views/admin/students'),
+      path: '',
+      component: () => import('@/views/super-admin/all-students'),
       meta: { title: '学员管理', icon: 'peoples' }
     }]
   },
   {
-    path: '/admin-coaches',
+    path: '/super-admin-coaches',
     component: Layout,
-    name: 'CoachManage',
-    meta: { title: '教练管理', icon: 'user', roles: ['ADMIN', 'SUPER_ADMIN'] },
+    name: 'SuperAdminCoaches',
+    meta: { title: '教练管理', icon: 'user', roles: ['SUPER_ADMIN'] },
     children: [{
-      path: '/admin-coaches',
-      component: () => import('@/views/admin/coaches'),
+      path: '',
+      component: () => import('@/views/super-admin/all-coaches'),
       meta: { title: '教练管理', icon: 'user' }
     }]
   },
   {
-    path: '/admin-courses',
+    path: '/super-admin-courses',
     component: Layout,
-    name: 'CourseManage',
-    meta: { title: '课程管理', icon: 'education', roles: ['ADMIN', 'SUPER_ADMIN'] },
+    name: 'SuperAdminCourses',
+    meta: { title: '课程管理', icon: 'education', roles: ['SUPER_ADMIN'] },
     children: [{
-      path: '/admin-courses',
-      component: () => import('@/views/admin/courses'),
+      path: '',
+      component: () => import('@/views/super-admin/course-management'),
       meta: { title: '课程管理', icon: 'education' }
     }]
   },
+
   {
-    path: '/admin-tournaments',
+    path: '/super-admin-tournaments',
     component: Layout,
-    name: 'TournamentManage',
-    meta: { title: '比赛管理', icon: 'trophy', roles: ['ADMIN', 'SUPER_ADMIN'] },
+    name: 'SuperAdminTournaments',
+    meta: { title: '比赛管理', icon: 'trophy', roles: ['SUPER_ADMIN'] },
     children: [{
-      path: '/admin-tournaments',
-      component: () => import('@/views/admin/tournaments'),
+      path: '',
+      component: () => import('@/views/super-admin/tournament-management'),
       meta: { title: '比赛管理', icon: 'trophy' }
     }]
   },
   {
-    path: '/admin-settings',
+    path: '/super-admin-finance',
     component: Layout,
-    name: 'SystemSettings',
-    meta: { title: '系统设置', icon: 'setting', roles: ['ADMIN', 'SUPER_ADMIN'] },
+    name: 'SuperAdminFinance',
+    meta: { title: '财务管理', icon: 'money', roles: ['SUPER_ADMIN'] },
     children: [{
-      path: '/admin-settings',
-      component: () => import('@/views/admin/settings'),
-      meta: { title: '系统设置', icon: 'setting' }
+      path: '',
+      component: () => import('@/views/super-admin/finance-management'),
+      meta: { title: '财务管理', icon: 'money' }
     }]
   },
+
   {
     path: '/system-logs',
     component: Layout,
     name: 'SystemLogs',
     meta: { title: '系统日志', icon: 'log', roles: ['SUPER_ADMIN'] },
     children: [{
-      path: '/system-logs',
-      component: () => import('@/views/admin/system-logs'),
+      path: '',
+      component: () => import('@/views/super-admin/system-logs'),
       meta: { title: '系统日志', icon: 'log' }
     }]
   },
@@ -359,108 +340,88 @@ export const constantRoutes = [
     name: 'LicenseManage',
     meta: { title: '许可证管理', icon: 'key', roles: ['SUPER_ADMIN'] },
     children: [{
-      path: '/license-manage',
-      component: () => import('@/views/admin/license'),
+      path: '',
+      component: () => import('@/views/super-admin/license-management'),
       meta: { title: '许可证管理', icon: 'key' }
     }]
   },
 
   {
-    path: '/campus-dashboard',
+    path: '/campus-admin-dashboard',
     component: Layout,
-    name: 'CampusDashboard',
+    name: 'CampusAdminDashboard',
     meta: { title: '校区首页', icon: 'dashboard', roles: ['CAMPUS_ADMIN'] },
     children: [{
-      path: '/campus-dashboard',
-      component: () => import('@/views/campus/dashboard'),
+      path: '',
+      component: () => import('@/views/campus-admin/dashboard'),
       meta: { title: '校区首页', icon: 'dashboard' }
     }]
   },
+
   {
-    path: '/campus-info',
+    path: '/campus-admin-students',
     component: Layout,
-    name: 'CampusInfo',
-    meta: { title: '校区信息', icon: 'building', roles: ['CAMPUS_ADMIN'] },
-    children: [{
-      path: '/campus-info',
-      component: () => import('@/views/campus/campus-info'),
-      meta: { title: '校区信息', icon: 'building' }
-    }]
-  },
-  {
-    path: '/campus-students',
-    component: Layout,
-    name: 'CampusStudents',
+    name: 'CampusAdminStudents',
     meta: { title: '学员管理', icon: 'peoples', roles: ['CAMPUS_ADMIN'] },
     children: [{
-      path: '/campus-students',
-      component: () => import('@/views/campus/students'),
+      path: '',
+      component: () => import('@/views/campus-admin/students'),
       meta: { title: '学员管理', icon: 'peoples' }
     }]
   },
   {
-    path: '/campus-coaches',
+    path: '/campus-admin-coaches',
     component: Layout,
-    name: 'CampusCoaches',
+    name: 'CampusAdminCoaches',
     meta: { title: '教练管理', icon: 'user', roles: ['CAMPUS_ADMIN'] },
     children: [{
-      path: '/campus-coaches',
-      component: () => import('@/views/campus/coaches'),
+      path: '',
+      component: () => import('@/views/campus-admin/coaches'),
       meta: { title: '教练管理', icon: 'user' }
     }]
   },
   {
-    path: '/campus-courses',
+    path: '/campus-admin-courses',
     component: Layout,
-    name: 'CampusCourses',
+    name: 'CampusAdminCourses',
     meta: { title: '课程管理', icon: 'education', roles: ['CAMPUS_ADMIN'] },
     children: [{
-      path: '/campus-courses',
-      component: () => import('@/views/campus/courses'),
+      path: '',
+      component: () => import('@/views/campus-admin/courses'),
       meta: { title: '课程管理', icon: 'education' }
     }]
   },
+  // 删除预约管理路由配置
   {
-    path: '/campus-appointments',
+    path: '/campus-admin-tournaments',
     component: Layout,
-    name: 'CampusAppointments',
-    meta: { title: '预约管理', icon: 'time', roles: ['CAMPUS_ADMIN'] },
-    children: [{
-      path: '/campus-appointments',
-      component: () => import('@/views/campus/appointments'),
-      meta: { title: '预约管理', icon: 'time' }
-    }]
-  },
-  {
-    path: '/campus-tournaments',
-    component: Layout,
-    name: 'CampusTournaments',
+    name: 'CampusAdminTournaments',
     meta: { title: '比赛管理', icon: 'trophy', roles: ['CAMPUS_ADMIN'] },
     children: [{
-      path: '/campus-tournaments',
-      component: () => import('@/views/campus/tournaments'),
+      path: '',
+      component: () => import('@/views/campus-admin/tournaments'),
       meta: { title: '比赛管理', icon: 'trophy' }
     }]
   },
   {
-    path: '/campus-finance',
+    path: '/campus-admin-finance',
     component: Layout,
-    name: 'CampusFinance',
+    name: 'CampusAdminFinance',
     meta: { title: '财务管理', icon: 'money', roles: ['CAMPUS_ADMIN'] },
     children: [{
-      path: '/campus-finance',
-      component: () => import('@/views/campus/finance'),
+      path: '',
+      component: () => import('@/views/campus-admin/finance'),
       meta: { title: '财务管理', icon: 'money' }
     }]
   },
   {
-    path: '/campus-system-logs',
+    path: '/campus-admin-system-logs',
     component: Layout,
-    name: 'CampusSystemLogs',
+    name: 'CampusAdminSystemLogs',
     meta: { title: '操作日志', icon: 'log', roles: ['CAMPUS_ADMIN'] },
     children: [{
-      path: '/campus-system-logs',
-      component: () => import('@/views/campus/system-logs'),
+      path: '',
+      component: () => import('@/views/campus-admin/system-logs'),
       meta: { title: '操作日志', icon: 'log' }
     }]
   },

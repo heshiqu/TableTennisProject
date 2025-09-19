@@ -633,6 +633,154 @@ public class CourseController {
     }
 
     /**
+     * 获取所有课程列表
+     *
+     * @return 所有课程列表DTO
+     *
+     * @apiNote 获取系统中所有课程的列表，按创建时间降序排列
+     */
+    @GetMapping("/all")
+    @Operation(summary = "获取所有课程列表", description = "获取系统中所有课程的列表，按创建时间降序排列")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功"),
+            @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
+    public ResponseEntity<MyApiResponse<List<CourseDTO>>> getAllCoursesList() {
+        try {
+            List<Course> courses = courseService.getAllCoursesList();
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", convertToDTOList(courses)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
+    }
+
+    /**
+     * 根据校区ID获取所有课程
+     *
+     * @param campusId 校区ID
+     * @return 指定校区的所有课程列表DTO
+     *
+     * @apiNote 获取指定校区的所有课程列表，通过教练或学员的校区关联进行筛选
+     */
+    @GetMapping("/campus/{campusId}")
+    @Operation(summary = "根据校区ID获取所有课程", description = "获取指定校区的所有课程列表，通过教练或学员的校区关联进行筛选")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功"),
+            @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
+    public ResponseEntity<MyApiResponse<List<CourseDTO>>> getCoursesByCampusId(
+            @Parameter(description = "校区ID", required = true) @PathVariable Long campusId) {
+        try {
+            List<Course> courses = courseService.getCoursesByCampusId(campusId);
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", convertToDTOList(courses)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取今日已确认课程数目
+     *
+     * @return 今日已确认的课程数量
+     *
+     * @apiNote 获取系统中今日已确认的课程总数
+     */
+    @GetMapping("/today/confirmed/count")
+    @Operation(summary = "获取今日已确认课程数目", description = "获取系统中今日已确认的课程总数")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功"),
+            @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
+    public ResponseEntity<MyApiResponse<Long>> countTodayConfirmedCourses() {
+        try {
+            Long count = courseService.countTodayConfirmedCourses();
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", count));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取教练今日已确认课程数目
+     *
+     * @param coachId 教练ID
+     * @return 教练今日已确认的课程数量
+     *
+     * @apiNote 获取指定教练今日已确认的课程数量
+     */
+    @GetMapping("/coach/{coachId}/today/confirmed/count")
+    @Operation(summary = "获取教练今日已确认课程数目", description = "获取指定教练今日已确认的课程数量")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功"),
+            @ApiResponse(responseCode = "404", description = "教练不存在"),
+            @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
+    public ResponseEntity<MyApiResponse<Long>> countTodayConfirmedCoursesByCoach(
+            @Parameter(description = "教练ID", required = true) @PathVariable Long coachId) {
+        try {
+            Long count = courseService.countTodayConfirmedCoursesByCoach(coachId);
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", count));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取学员今日已确认课程数目
+     *
+     * @param studentId 学员ID
+     * @return 学员今日已确认的课程数量
+     *
+     * @apiNote 获取指定学员今日已确认的课程数量
+     */
+    @GetMapping("/student/{studentId}/today/confirmed/count")
+    @Operation(summary = "获取学员今日已确认课程数目", description = "获取指定学员今日已确认的课程数量")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功"),
+            @ApiResponse(responseCode = "404", description = "学员不存在"),
+            @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
+    public ResponseEntity<MyApiResponse<Long>> countTodayConfirmedCoursesByStudent(
+            @Parameter(description = "学员ID", required = true) @PathVariable Long studentId) {
+        try {
+            Long count = courseService.countTodayConfirmedCoursesByStudent(studentId);
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", count));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取校区今日已确认课程数目
+     *
+     * @param campusId 校区ID
+     * @return 校区今日已确认的课程数量
+     *
+     * @apiNote 获取指定校区今日已确认的课程数量
+     */
+    @GetMapping("/campus/{campusId}/today/confirmed/count")
+    @Operation(summary = "获取校区今日已确认课程数目", description = "获取指定校区今日已确认的课程数量")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功"),
+            @ApiResponse(responseCode = "500", description = "服务器内部错误")
+    })
+    public ResponseEntity<MyApiResponse<Long>> countTodayConfirmedCoursesByCampus(
+            @Parameter(description = "校区ID", required = true) @PathVariable Long campusId) {
+        try {
+            Long count = courseService.countTodayConfirmedCoursesByCampus(campusId);
+            return ResponseEntity.ok(MyApiResponse.success("获取成功", count));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(MyApiResponse.error(400, e.getMessage()));
+        }
+    }
+
+    /**
      * 将实体转换为DTO
      */
     private CourseDTO convertToDTO(Course course) {
@@ -642,6 +790,12 @@ public class CourseController {
         dto.setCoachName(course.getCoach().getRealName());
         dto.setStudentId(course.getStudent().getId());
         dto.setStudentName(course.getStudent().getRealName());
+
+        // 设置课程所属校区信息（通过教练获取校区）
+        if (course.getCoach() != null && course.getCoach().getCampus() != null) {
+            dto.setCampusId(course.getCoach().getCampus().getId());
+            dto.setCampusName(course.getCoach().getCampus().getName());
+        }
 
         if (course.getCourt() != null) {
             dto.setCourtId(course.getCourt().getId());

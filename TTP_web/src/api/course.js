@@ -188,3 +188,27 @@ export function getStudentMonthlyCancelCount(studentId) {
     method: 'get'
   })
 }
+
+// 获取校区今日已确认课程数量
+export function getCampusTodayConfirmedCount(campusId) {
+  return request({
+    url: `/api/courses/campus/${campusId}/today/confirmed/count`,
+    method: 'get'
+  })
+}
+
+// 获取校区管理员的课程列表
+export function getCampusCourses(campusId, params) {
+  // 复制参数，但移除分页相关参数
+  const queryParams = { ...params }
+  if (queryParams.page || queryParams.limit) {
+    delete queryParams.page
+    delete queryParams.limit
+  }
+  
+  return request({
+    url: `/api/courses/campus/${campusId}`,
+    method: 'get',
+    params: queryParams
+  })
+}

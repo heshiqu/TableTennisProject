@@ -38,12 +38,10 @@ router.beforeEach(async(to, from, next) => {
           if (to.path === '/') {
             // 根据用户角色跳转到对应的首页
             let redirectPath = '/'
-            if (roles.includes('SUPER_ADMIN')) {
-              redirectPath = '/super-admin-dashboard'
-            } else if (roles.includes('ADMIN')) {
-              redirectPath = '/admin-dashboard'
-            } else if (roles.includes('CAMPUS_ADMIN')) {
-              redirectPath = '/campus-dashboard'
+              if (roles.includes('SUPER_ADMIN')) {
+                redirectPath = '/super-admin-dashboard'
+              } else if (roles.includes('CAMPUS_ADMIN')) {
+                redirectPath = '/campus-admin-dashboard'
             } else if (roles.includes('COACH')) {
               redirectPath = '/coach-dashboard'
             } else if (roles.includes('STUDENT')) {

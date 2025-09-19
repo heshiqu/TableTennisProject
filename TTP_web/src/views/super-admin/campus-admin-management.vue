@@ -5,28 +5,6 @@
         <span>校区管理员管理</span>
         <el-button style="float: right;" type="primary" @click="handleCreate">新增管理员</el-button>
       </div>
-      
-      <div class="filter-container">
-        <el-input
-          v-model="keyword"
-          placeholder="搜索姓名、用户名或电话"
-          style="width: 200px;"
-          @keyup.enter.native="handleFilter"
-        />
-        <el-select v-model="campusFilter" placeholder="所属校区" clearable @change="handleFilter">
-          <el-option
-            v-for="campus in campuses"
-            :key="campus.id"
-            :label="campus.name"
-            :value="campus.id"
-          />
-        </el-select>
-        <el-select v-model="statusFilter" placeholder="状态" clearable @change="handleFilter">
-          <el-option label="正常" value="ACTIVE" />
-          <el-option label="禁用" value="DISABLED" />
-        </el-select>
-        <el-button type="primary" @click="handleFilter">查询</el-button>
-      </div>
 
       <el-table
         v-loading="loading"
@@ -39,11 +17,6 @@
         <el-table-column prop="phone" label="联系电话" width="120" />
         <el-table-column prop="email" label="邮箱" width="180" />
         <el-table-column prop="campusName" label="所属校区" width="150" />
-        <el-table-column prop="role" label="角色" width="100">
-          <template slot-scope="{row}">
-            <el-tag type="warning">校区管理员</el-tag>
-          </template>
-        </el-table-column>
         <el-table-column prop="status" label="状态" width="80">
           <template slot-scope="{row}">
             <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'danger'">
@@ -52,7 +25,6 @@
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="160" />
-        <el-table-column prop="lastLoginTime" label="最后登录" width="160" />
         <el-table-column label="操作" width="150" fixed="right">
           <template slot-scope="{row}">
             <el-button type="text" size="small" @click="handleEdit(row)">编辑</el-button>
@@ -121,9 +93,6 @@ export default {
     return {
       administrators: [],
       campuses: [],
-      keyword: '',
-      campusFilter: '',
-      statusFilter: '',
       loading: false,
       total: 0,
       listQuery: {
@@ -177,16 +146,29 @@ export default {
       this.loading = true
       try {
         const params = {
-          page: this.listQuery.page,
-          limit: this.listQuery.limit,
-          keyword: this.keyword,
-          campusId: this.campusFilter,
-          status: this.statusFilter
+          page: this.listQuery.page - 1, // 转换为0-based索引
+          size: this.listQuery.limit
         }
         
         const response = await getCampusAdminsPage(params)
-        this.administrators = response.records || []
-        this.total = response.total || 0
+        // 适配新的API响应格式
+        if (response && response.content) {
+          this.administrators = response.content.map(admin => ({
+            id: admin.id,
+            realName: admin.realName,
+            username: admin.username,
+            phone: admin.phone,
+            email: admin.email,
+            campusName: admin.campusName,
+            campusId: admin.campusId,
+            status: admin.status,
+            createTime: admin.createdAt
+          })) || []
+          this.total = response.totalElements || 0
+        } else {
+          this.administrators = []
+          this.total = 0
+        }
       } catch (error) {
         console.error('获取管理员列表失败:', error)
         this.$message.error('获取管理员列表失败')
@@ -197,15 +179,21 @@ export default {
     async loadCampuses() {
       try {
         const response = await getCampuses({ limit: 1000 })
-        this.campuses = response.data.records || []
+        // 适配新的API响应格式
+        if (response && response.content) {
+          this.campuses = response.content || []
+        } else if (response && response.data && response.data.records) {
+          // 兼容旧的API格式
+          this.campuses = response.data.records || []
+        } else {
+          this.campuses = []
+        }
       } catch (error) {
         console.error('获取校区列表失败:', error)
+        this.$message.error('获取校区列表失败')
       }
     },
-    handleFilter() {
-      this.listQuery.page = 1
-      this.getList()
-    },
+
     handleCreate() {
       this.isEdit = false
       this.dialogTitle = '新增校区管理员'
@@ -293,12 +281,4 @@ export default {
 </script>
 
 <style scoped>
-.filter-container {
-  margin-bottom: 20px;
-}
-
-.filter-container > * {
-  margin-right: 10px;
-  margin-bottom: 10px;
-}
 </style>
