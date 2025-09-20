@@ -128,6 +128,7 @@
 import { getCampusCourses, adminConfirmCourse, adminCancelCourse } from '@/api/course'
 import waves from '@/directive/waves'
 import { parseTime } from '@/utils'
+import request from '@/utils/request'
 
 // 添加防抖函数
 function debounce(fn, delay) {
@@ -269,16 +270,43 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        adminConfirmCourse(row.id).then(response => {
+        request({
+          url: `/api/courses/${row.id}/confirm`,
+          method: 'post'
+        }).then(response => {
           if (response.code === 200) {
-            row.status = 'CONFIRMED'
+            // 刷新列表以更新状态
+            this.getList()
             this.$notify({
               title: '成功',
               message: '课程已确认',
               type: 'success',
               duration: 2000
             })
+          } else {
+            // 显示失败信息
+            this.$notify({
+              title: '失败',
+              message: response.message || '课程确认失败',
+              type: 'error',
+              duration: 3000
+            })
           }
+        }).catch(error => {
+          // 处理网络请求异常，尝试从error对象中提取message
+          let errorMessage = '网络错误，请稍后重试'
+          if (error.response && error.response.data && error.response.data.message) {
+            errorMessage = error.response.data.message
+          } else if (error.message) {
+            errorMessage = error.message
+          }
+          this.$notify({
+            title: '失败',
+            message: errorMessage,
+            type: 'error',
+            duration: 3000
+          })
+          console.error('确认课程失败:', error)
         })
       })
     },
@@ -288,16 +316,52 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        adminCancelCourse(row.id).then(response => {
+        // 获取当前登录管理员的id
+        const userInfo = this.$store.getters.userInfo || { id: 2 } // 默认值为2，实际应该从store获取
+        const cancelledBy = userInfo.id
+        
+        // 发送取消请求
+        request({
+          url: `/api/courses/${row.id}/cancel`,
+          method: 'post',
+          params: {
+            reason: '管理员取消',
+            cancelledBy: cancelledBy
+          }
+        }).then(response => {
           if (response.code === 200) {
-            row.status = 'CANCELLED'
+            // 刷新列表以更新状态
+            this.getList()
             this.$notify({
               title: '成功',
               message: '课程已取消',
               type: 'success',
               duration: 2000
             })
+          } else {
+            // 显示失败信息
+            this.$notify({
+              title: '失败',
+              message: response.message || '课程取消失败',
+              type: 'error',
+              duration: 3000
+            })
           }
+        }).catch(error => {
+          // 处理网络请求异常，尝试从error对象中提取message
+          let errorMessage = '网络错误，请稍后重试'
+          if (error.response && error.response.data && error.response.data.message) {
+            errorMessage = error.response.data.message
+          } else if (error.message) {
+            errorMessage = error.message
+          }
+          this.$notify({
+            title: '失败',
+            message: errorMessage,
+            type: 'error',
+            duration: 3000
+          })
+          console.error('取消课程失败:', error)
         })
       })
     },

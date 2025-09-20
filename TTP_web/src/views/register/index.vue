@@ -232,6 +232,7 @@
 
 <script>
 import { uploadAvatar } from '@/api/upload'
+import request from '@/utils/request'
 
 export default {
   name: 'Register',
@@ -347,35 +348,37 @@ export default {
     },
     async loadCampusList() {
       try {
-        const { getCampusList } = require('@/api/campus')
-        const response = await getCampusList()
+        // 使用request工具发送GET请求获取校区列表
+        const response = await request({
+          url: '/api/campuses',
+          method: 'get'
+        })
         
-        // 检查响应数据结构，兼容不同格式
-        let campusData = []
-        if (response && response.data) {
-          campusData = Array.isArray(response.data) ? response.data : response
-        } else if (Array.isArray(response)) {
-          campusData = response
-        }
-        
-        if (campusData.length > 0) {
-          this.campusList = campusData.map(campus => ({
+        // 正确处理响应数据结构
+        if (response && response.code === 200 && Array.isArray(response.data)) {
+          this.campusList = response.data.map(campus => ({
             id: campus.id,
             name: campus.name
           }))
         } else {
-          // 静默使用默认数据，不显示错误
+          // 使用默认数据作为备用
           this.campusList = [
             { id: 1, name: '中心校区' },
             { id: 2, name: '海淀分校区' },
             { id: 3, name: '朝阳分校区' }
           ]
+          
+          // 在开发环境记录响应格式问题
+          if (process.env.NODE_ENV === 'development') {
+            console.log('校区数据响应格式不符合预期，使用默认数据', response)
+          }
         }
       } catch (error) {
-        // 静默处理错误，只在开发环境打印
+        // 处理网络请求异常
         if (process.env.NODE_ENV === 'development') {
-          console.log('校区数据加载提示:', '使用默认校区数据')
+          console.error('获取校区列表失败:', error)
         }
+        // 使用默认校区数据作为备用
         this.campusList = [
           { id: 1, name: '中心校区' },
           { id: 2, name: '海淀分校区' },

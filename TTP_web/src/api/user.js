@@ -35,8 +35,8 @@ export function getUserList(params) {
 export function updateUserStatus(id, status) {
   return request({
     url: `/api/users/${id}/status`,
-    method: 'put',
-    data: { status }
+    method: 'patch',
+    params: { status }
   })
 }
 

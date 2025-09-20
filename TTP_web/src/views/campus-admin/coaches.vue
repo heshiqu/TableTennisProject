@@ -101,8 +101,8 @@
       </el-table-column>
       <el-table-column label="状态" width="80px" align="center">
         <template slot-scope="{row}">
-          <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'warning'">
-            {{ row.status === 'ACTIVE' ? '活跃' : '待审核' }}
+          <el-tag :type="row.status === 'ACTIVE' ? 'success' : row.status === 'PENDING' ? 'warning' : 'danger'">
+            {{ row.status === 'ACTIVE' ? '活跃' : row.status === 'PENDING' ? '待审核' : '禁用' }}
           </el-tag>
         </template>
       </el-table-column>
@@ -111,16 +111,33 @@
           <span>{{ row.createdAt | parseTime('{y}-{m}-{d} {h}:{i}') }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" align="center" width="250" class-name="small-padding fixed-width">
+      <el-table-column label="操作" align="center" width="350" class-name="small-padding fixed-width">
         <template slot-scope="{row,$index}">
           <el-button type="primary" size="mini" @click="handleDetail(row)">
-            详情
-          </el-button>
-          <el-button size="mini" type="warning" @click="handleUpdate(row)">
-            编辑
-          </el-button>
-          <el-button size="mini" type="danger" @click="handleDisable(row)">
+              详情
+            </el-button>
+            <el-button size="mini" type="warning" @click="handleUpdate(row)">
+              编辑
+            </el-button>
+          
+          <!-- 待审核状态下显示通过和不通过按钮 -->
+          <template v-if="row.status === 'PENDING'">
+            <el-button size="mini" type="success" @click="handleApprove(row)">
+              通过
+            </el-button>
+            <el-button size="mini" type="danger" @click="handleReject(row)">
+              不通过
+            </el-button>
+          </template>
+          
+          <!-- 非待审核且非禁用状态下显示禁用按钮 -->
+          <el-button size="mini" type="danger" v-else-if="row.status !== 'INACTIVE'" @click="handleDisable(row)">
             禁用
+          </el-button>
+          
+          <!-- 禁用状态下显示启用按钮 -->
+          <el-button size="mini" type="success" v-else @click="handleEnable(row)">
+            启用
           </el-button>
         </template>
       </el-table-column>
@@ -142,17 +159,6 @@
         <el-form-item label="真实姓名" prop="realName">
           <el-input v-model="editForm.realName" placeholder="请输入真实姓名" />
         </el-form-item>
-        <el-form-item label="教练级别" prop="level">
-          <el-select v-model="editForm.level" placeholder="请选择教练级别">
-            <el-option label="高级教练" :value="1" />
-            <el-option label="中级教练" :value="2" />
-            <el-option label="初级教练" :value="3" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="收费标准" prop="hourlyRate">
-          <el-input-number v-model="editForm.hourlyRate" :min="0" :max="500" :step="10" />
-          <span style="margin-left: 10px;">元/小时</span>
-        </el-form-item>
         <el-form-item label="电话" prop="phone">
           <el-input v-model="editForm.phone" placeholder="请输入电话号码" />
         </el-form-item>
@@ -163,6 +169,85 @@
       <div slot="footer" class="dialog-footer">
         <el-button @click="editDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="updateCoach">保存</el-button>
+      </div>
+    </el-dialog>
+
+    <!-- 教练详情对话框 -->
+    <el-dialog title="教练详情" :visible.sync="detailDialogVisible" width="600px">
+      <div class="detail-content">
+        <div class="detail-row">
+          <div class="detail-label">头像</div>
+          <div class="detail-value">
+            <el-avatar :src="coachDetail.avatar" size="80" />
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">姓名</div>
+          <div class="detail-value">{{ coachDetail.realName }}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">用户名</div>
+          <div class="detail-value">{{ coachDetail.username }}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">性别</div>
+          <div class="detail-value">{{ coachDetail.gender === 'MALE' ? '男' : '女' }}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">年龄</div>
+          <div class="detail-value">{{ coachDetail.age }}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">电话</div>
+          <div class="detail-value">{{ coachDetail.phone }}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">邮箱</div>
+          <div class="detail-value">{{ coachDetail.email }}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">校区</div>
+          <div class="detail-value">{{ coachDetail.campusName }}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">状态</div>
+          <div class="detail-value">
+            <el-tag :type="coachDetail.status === 'ACTIVE' ? 'success' : coachDetail.status === 'PENDING' ? 'warning' : 'danger'">
+              {{ coachDetail.status === 'ACTIVE' ? '活跃' : coachDetail.status === 'PENDING' ? '待审核' : '禁用' }}
+            </el-tag>
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">注册时间</div>
+          <div class="detail-value">{{ coachDetail.createdAt | parseTime('{y}-{m}-{d} {h}:{i}') }}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">更新时间</div>
+          <div class="detail-value">{{ coachDetail.updatedAt | parseTime('{y}-{m}-{d} {h}:{i}') }}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">教练级别</div>
+          <div class="detail-value">
+            <el-tag :type="coachDetail.level | levelFilter">
+              {{ coachDetail.level | levelNameFilter }}
+            </el-tag>
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">收费标准</div>
+          <div class="detail-value">¥{{ coachDetail.hourlyRate }}/小时</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">学员数量</div>
+          <div class="detail-value">{{ coachDetail.currentStudents }}/{{ coachDetail.maxStudents }}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">获奖信息</div>
+          <div class="detail-value">{{ coachDetail.awards }}</div>
+        </div>
+      </div>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="detailDialogVisible = false">关闭</el-button>
       </div>
     </el-dialog>
   </div>
@@ -176,10 +261,34 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.detail-content {
+  padding: 20px 0;
+}
+
+.detail-row {
+  display: flex;
+  margin-bottom: 16px;
+  align-items: flex-start;
+}
+
+.detail-label {
+  width: 100px;
+  color: #606266;
+  font-weight: 500;
+}
+
+.detail-value {
+  flex: 1;
+  color: #303133;
+  word-break: break-word;
+}
 </style>
 
 <script>
-import { getCoachesByCampus, updateCoach, auditCoach } from '@/api/coach'
+import request from '@/utils/request'
+import { getCoachesByCampus, auditCoach, getCoachDetail } from '@/api/coach'
+import { updateUserInfo } from '@/api/user'
 import waves from '@/directive/waves'
 import { parseTime } from '@/utils'
 import Pagination from '@/components/Pagination'
@@ -249,22 +358,21 @@ export default {
       ],
       statusOptions: [
         { key: 'ACTIVE', display_name: '活跃' },
-        { key: 'PENDING', display_name: '待审核' }
+        { key: 'PENDING', display_name: '待审核' },
+        { key: 'INACTIVE', display_name: '禁用' }
       ],
 
       editDialogVisible: false,
       editForm: {
         id: undefined,
         realName: '',
-        level: 1,
-        hourlyRate: 150,
         phone: '',
         email: ''
       },
+      detailDialogVisible: false,
+      coachDetail: {},
       editRules: {
         realName: [{ required: true, message: '真实姓名不能为空', trigger: 'blur' }],
-        level: [{ required: true, message: '请选择教练级别', trigger: 'change' }],
-        hourlyRate: [{ required: true, message: '请输入收费标准', trigger: 'blur' }],
         phone: [
           { required: true, message: '电话号码不能为空', trigger: 'blur' },
           { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
@@ -324,16 +432,25 @@ export default {
       this.listQuery.page = 1
       this.getList()
     },
-    handleDetail(row) {
-      this.$router.push(`/campus/coaches/${row.id}`)
+    async handleDetail(row) {
+      try {
+        this.listLoading = true
+        const response = await getCoachDetail(row.id)
+        if (response.code === 200) {
+          this.coachDetail = response.data
+          this.detailDialogVisible = true
+        }
+      } catch (error) {
+        console.error('获取教练详情失败:', error)
+        this.$message.error('获取教练详情失败')
+      } finally {
+        this.listLoading = false
+      }
     },
     handleUpdate(row) {
-      const levelMap = { 'SENIOR': 1, 'INTERMEDIATE': 2, 'JUNIOR': 3 }
       this.editForm = {
         id: row.id,
         realName: row.realName,
-        level: levelMap[row.level] || 2,
-        hourlyRate: row.hourlyRate,
         phone: row.phone,
         email: row.email
       }
@@ -343,12 +460,14 @@ export default {
       this.$refs.editForm.validate(async(valid) => {
         if (valid) {
           try {
-            const levelMap = { 1: 'SENIOR', 2: 'INTERMEDIATE', 3: 'JUNIOR' }
-            const updateData = {
-              ...this.editForm,
-              level: levelMap[this.editForm.level]
+            // 构建符合要求的请求体，只包含需要修改的字段
+            const requestBody = {
+              realName: this.editForm.realName,
+              phone: this.editForm.phone,
+              email: this.editForm.email
             }
-            const response = await updateCoach(this.editForm.id, updateData)
+            
+            const response = await updateUserInfo(this.editForm.id, requestBody)
             if (response.code === 200) {
               this.$message.success('更新成功')
               this.editDialogVisible = false
@@ -366,9 +485,13 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        updateCoach({ id: row.id, auditStatus: 3 }).then(response => {
+        request({
+          url: `/api/users/${row.id}`,
+          method: 'delete'
+        }).then(response => {
           if (response.code === 200) {
-            row.auditStatus = 3
+            // 从列表中移除该教练
+            this.getList()
             this.$notify({
               title: '成功',
               message: '禁用成功',
@@ -385,12 +508,69 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        updateCoach({ id: row.id, auditStatus: 1 }).then(response => {
+        request({
+          url: `/api/users/${row.id}/status`,
+          method: 'patch',
+          params: { status: 'ACTIVE' }
+        }).then(response => {
           if (response.code === 200) {
-            row.auditStatus = 1
+            // 刷新列表以更新状态
+            this.getList()
             this.$notify({
               title: '成功',
               message: '启用成功',
+              type: 'success',
+              duration: 2000
+            })
+          }
+        })
+      })
+    },
+    
+    // 处理教练审核通过
+    handleApprove(row) {
+      this.$confirm('确认通过该教练的审核吗？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'success'
+      }).then(() => {
+        request({
+          url: `/api/users/${row.id}/status`,
+          method: 'patch',
+          params: { status: 'ACTIVE' }
+        }).then(response => {
+          if (response.code === 200) {
+            // 刷新列表以更新状态
+            this.getList()
+            this.$notify({
+              title: '成功',
+              message: '审核通过成功',
+              type: 'success',
+              duration: 2000
+            })
+          }
+        })
+      })
+    },
+    
+    // 处理教练审核不通过
+    handleReject(row) {
+      this.$confirm('确认不通过该教练的审核吗？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'danger'
+      }).then(() => {
+        request({
+          url: `/api/users/${row.id}/status`,
+          method: 'patch',
+          params: { status: 'INACTIVE' }
+        }).then(response => {
+          if (response.code === 200) {
+            // 刷新列表以更新状态
+            this.getList()
+            this.$notify({
+              title: '成功',
+              message: '审核不通过成功',
               type: 'success',
               duration: 2000
             })

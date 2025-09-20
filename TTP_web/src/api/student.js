@@ -8,6 +8,14 @@ export function getStudentListByCampus(campusId) {
   })
 }
 
+// 删除学员（禁用学员）
+export function deleteStudent(id) {
+  return request({
+    url: `/api/users/${id}`,
+    method: 'delete'
+  })
+}
+
 // 兼容旧接口
 export function getStudentList(params) {
   return request({

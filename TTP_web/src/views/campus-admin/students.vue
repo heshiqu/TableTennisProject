@@ -202,7 +202,9 @@
 </template>
 
 <script>
-import { getStudentListByCampus, createStudent, updateStudent, deleteStudent, adjustStudentBalance } from '@/api/student'
+import { getStudentListByCampus, deleteStudent, adjustStudentBalance } from '@/api/student'
+import { registerStudent } from '@/api/auth'
+import { updateUserStatus, updateUserInfo } from '@/api/user'
 import waves from '@/directive/waves'
 import { parseTime } from '@/utils'
 import Pagination from '@/components/Pagination'
@@ -354,9 +356,33 @@ export default {
     createData() {
       this.$refs['dataForm'].validate((valid) => {
         if (valid) {
-          createStudent(this.temp).then(response => {
+          // 获取当前登录的校区管理员的campusId
+          const currentUser = this.$store.state.user.user
+          if (!currentUser || !currentUser.campusId) {
+            this.$message.error('无法获取用户校区信息')
+            return
+          }
+          
+          // 构建符合要求的请求体
+          const requestBody = {
+            username: this.temp.username,
+            password: 'jlu123456!', // 默认密码
+            realName: this.temp.realName,
+            gender: this.temp.gender,
+            age: this.temp.age,
+            phone: this.temp.phone,
+            email: this.temp.email,
+            userType: 'STUDENT',
+            campusId: currentUser.campusId,
+            level: 'SENIOR', // 默认级别
+            awards: '', // 默认空
+            initialBalance: this.temp.balance || 0,
+            avatar: '' // 默认空
+          }
+          
+          registerStudent(requestBody).then(response => {
             if (response.code === 200) {
-              this.list.unshift(response.data)
+              this.getList() // 重新获取列表数据
               this.dialogFormVisible = false
               this.$notify({
                 title: '成功',
@@ -380,8 +406,17 @@ export default {
     updateData() {
       this.$refs['dataForm'].validate((valid) => {
         if (valid) {
-          const tempData = Object.assign({}, this.temp)
-          updateStudent(tempData).then(response => {
+          // 构建符合要求的请求体，不修改password、username、avatar、userType和campusId字段
+          const requestBody = {
+            realName: this.temp.realName,
+            gender: this.temp.gender,
+            age: this.temp.age,
+            phone: this.temp.phone,
+            email: this.temp.email,
+            status: this.temp.status
+          }
+          
+          updateUserInfo(this.temp.id, requestBody).then(response => {
             if (response.code === 200) {
               const index = this.list.findIndex(v => v.id === this.temp.id)
               this.list.splice(index, 1, response.data)
@@ -398,14 +433,16 @@ export default {
       })
     },
     handleModifyStatus(row, status) {
-      const statusText = status === 1 ? '启用' : '禁用'
+      const statusText = status === 'ACTIVE' ? '启用' : '禁用'
       this.$confirm(`确认${statusText}该学员吗？`, '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        updateStudent({ id: row.id, status }).then(response => {
+        // 无论启用还是禁用，都使用updateUserStatus更新状态
+        updateUserStatus(row.id, status).then(response => {
           if (response.code === 200) {
+            // 只更新状态，不从列表中移除
             row.status = status
             this.$notify({
               title: '成功',
